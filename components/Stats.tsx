@@ -1,14 +1,15 @@
 'use client'
 
 import { motion } from 'framer-motion'
-
-const stats = [
-  { label: 'Agents Indexed', value: '2,847' },
-  { label: 'Verified', value: '342' },
-  { label: 'Value Protected', value: '$4.2M' },
-]
+import { agents, getVerifiedCount, getTotalVouched } from '@/lib/agents-data'
 
 export default function Stats() {
+  const stats = [
+    { label: 'Agents Indexed', value: agents.length.toString() },
+    { label: 'Verified', value: getVerifiedCount().toString() },
+    { label: 'ETH Vouched', value: `${getTotalVouched().toFixed(1)}` },
+  ]
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
