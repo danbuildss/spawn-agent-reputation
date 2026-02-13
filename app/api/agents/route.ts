@@ -110,12 +110,14 @@ function getGradient(name: string): string {
   return gradients[index]
 }
 
-// Search terms for AI agents on Base
+// Search terms for tokens on Base
 const SEARCH_TERMS = [
-  'AI', 'agent', 'bot', 'GPT', 'neural', 'brain', 
-  'auto', 'smart', 'defi', 'trade', 'swap',
-  'meme', 'pepe', 'doge', 'shib', 'wojak',
-  'base', 'eth', 'virtual', 'meta'
+  'base', 'AI', 'agent', 'bot', 'GPT',
+  'defi', 'trade', 'swap', 'yield',
+  'meme', 'pepe', 'doge', 'shib', 
+  'virtual', 'bnkr', 'clanker',
+  'luna', 'sol', 'eth', 'usdc',
+  'game', 'nft', 'art', 'music'
 ]
 
 export async function GET() {
@@ -123,26 +125,8 @@ export async function GET() {
     const allPairs: DexPair[] = []
     const seenAddresses = new Set<string>()
 
-    // Fetch top pairs on Base chain directly
-    const baseRes = await fetch(`${DEXSCREENER_API}/latest/dex/pairs/base`, {
-      next: { revalidate: 300 }
-    })
-    
-    if (baseRes.ok) {
-      const baseData = await baseRes.json()
-      if (baseData.pairs) {
-        for (const pair of baseData.pairs) {
-          const addr = pair.baseToken?.address?.toLowerCase()
-          if (addr && !seenAddresses.has(addr)) {
-            seenAddresses.add(addr)
-            allPairs.push(pair)
-          }
-        }
-      }
-    }
-
-    // Also search for specific AI-related tokens
-    for (const term of SEARCH_TERMS.slice(0, 5)) {
+    // Search for tokens on Base chain using multiple terms
+    for (const term of SEARCH_TERMS) {
       try {
         const searchRes = await fetch(`${DEXSCREENER_API}/latest/dex/search?q=${term}`, {
           next: { revalidate: 300 }
@@ -167,7 +151,10 @@ export async function GET() {
       }
       
       // Stop if we have enough
-      if (allPairs.length >= 150) break
+      if (allPairs.length >= 200) break
+      
+      // Small delay to avoid rate limiting
+      await new Promise(r => setTimeout(r, 100))
     }
 
     // Convert pairs to agent format
