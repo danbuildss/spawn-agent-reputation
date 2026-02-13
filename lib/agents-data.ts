@@ -2,6 +2,9 @@
 // Source: Bankr ecosystem, Virtuals, Clanker, and Base AI agent scene
 // Last updated: 2026-02-13
 
+// ETH price for calculations (would be fetched from API in production)
+export const ETH_PRICE = 2800
+
 export interface Agent {
   id: string
   name: string
@@ -9,7 +12,7 @@ export interface Agent {
   token: string
   category: 'Infrastructure' | 'DeFi' | 'Social' | 'Analytics' | 'Creative' | 'Trading' | 'Gaming' | 'Security'
   description: string
-  score: number // Trust score 0-100
+  score: number
   status: 'verified' | 'pending' | 'unverified'
   vouched: number // ETH vouched
   reviews: number
@@ -23,6 +26,28 @@ export interface Agent {
   launchPlatform?: 'bankr' | 'clanker' | 'virtuals' | 'other'
 }
 
+// Format vouched amount with USD value
+export const formatVouched = (eth: number) => {
+  const usd = eth * ETH_PRICE
+  if (usd >= 1000000) {
+    return `${eth} ETH / $${(usd / 1000000).toFixed(1)}M`
+  } else if (usd >= 1000) {
+    return `${eth} ETH / $${(usd / 1000).toFixed(0)}K`
+  }
+  return `${eth} ETH / $${usd.toFixed(0)}`
+}
+
+// Short format for tables
+export const formatVouchedShort = (eth: number) => {
+  const usd = eth * ETH_PRICE
+  if (usd >= 1000000) {
+    return { eth: `${eth} ETH`, usd: `$${(usd / 1000000).toFixed(1)}M` }
+  } else if (usd >= 1000) {
+    return { eth: `${eth} ETH`, usd: `$${(usd / 1000).toFixed(0)}K` }
+  }
+  return { eth: `${eth} ETH`, usd: `$${usd.toFixed(0)}` }
+}
+
 export const agents: Agent[] = [
   // Tier 1: Core Infrastructure
   {
@@ -31,7 +56,7 @@ export const agents: Agent[] = [
     handle: '@bankrbot',
     token: '$BNKR',
     category: 'Infrastructure',
-    description: 'Core AI crypto bank/agent for wallets, trading, and token launches on Base. Powers self-sustaining agents through trading fees.',
+    description: 'Core AI crypto bank for wallets, trading, and token launches on Base.',
     score: 96,
     status: 'verified',
     vouched: 24.5,
@@ -48,7 +73,7 @@ export const agents: Agent[] = [
     handle: '@clanker_world',
     token: '$CLANKER',
     category: 'Infrastructure',
-    description: 'Token issuance infrastructure for agents. Powers rapid, autonomous token deployments on Base.',
+    description: 'Token issuance infrastructure for autonomous agent deployments.',
     score: 94,
     status: 'verified',
     vouched: 18.2,
@@ -63,9 +88,9 @@ export const agents: Agent[] = [
     id: 'virtuals',
     name: 'Virtuals Protocol',
     handle: '@virtuals_io',
-    token: 'Various',
+    token: '$VIRTUAL',
     category: 'Infrastructure',
-    description: 'Tokenized AI agent platform with co-ownership model. High agentic GDP and ecosystem activity.',
+    description: 'Tokenized AI agent platform with co-ownership model.',
     score: 93,
     status: 'verified',
     vouched: 31.0,
@@ -82,7 +107,7 @@ export const agents: Agent[] = [
     handle: '@clawdbotatg',
     token: '$CLAWD',
     category: 'Infrastructure',
-    description: 'Multi-agent system for on-chain apps, bounties, and tools. Open-source agent framework.',
+    description: 'Multi-agent system for on-chain apps and tools.',
     score: 91,
     status: 'verified',
     vouched: 12.8,
@@ -92,15 +117,13 @@ export const agents: Agent[] = [
     gradient: 'from-orange-500 to-red-500',
     launchPlatform: 'other'
   },
-  
-  // Tier 2: DeFi & Analytics Agents
   {
     id: 'elsa',
     name: 'Hey Elsa AI',
     handle: '@HeyElsaAI',
     token: '$ELSA',
     category: 'DeFi',
-    description: 'DeFi copilot agent for staking and lending. Supports micropayments and automated strategies.',
+    description: 'DeFi copilot for staking and lending automation.',
     score: 88,
     status: 'verified',
     vouched: 8.4,
@@ -117,7 +140,7 @@ export const agents: Agent[] = [
     handle: '@Wach_AI',
     token: '$WACH',
     category: 'Analytics',
-    description: 'DeFi risk analytics and mandate tools. Real-time monitoring and alerts.',
+    description: 'DeFi risk analytics and monitoring tools.',
     score: 85,
     status: 'verified',
     vouched: 5.2,
@@ -133,7 +156,7 @@ export const agents: Agent[] = [
     handle: '@aixbt_agent',
     token: '$AIXBT',
     category: 'Analytics',
-    description: 'AI market analysis agent. Top mindshare KOL-style agent for crypto insights.',
+    description: 'AI market analysis and crypto insights agent.',
     score: 87,
     status: 'verified',
     vouched: 9.1,
@@ -143,15 +166,13 @@ export const agents: Agent[] = [
     gradient: 'from-indigo-500 to-blue-500',
     launchPlatform: 'other'
   },
-  
-  // Tier 3: Social & Creative
   {
     id: 'moltbook',
     name: 'Moltbook',
     handle: '@moltbook',
     token: '$MOLT',
     category: 'Social',
-    description: 'Social network and forum for AI agents. Massive scale agent interaction platform.',
+    description: 'Social network and forum for AI agents.',
     score: 82,
     status: 'verified',
     vouched: 6.7,
@@ -167,7 +188,7 @@ export const agents: Agent[] = [
     handle: '@freysa_ai',
     token: '$FREYSA',
     category: 'Infrastructure',
-    description: 'Sovereign AI agent platform. Integration and sovereignty for autonomous agents.',
+    description: 'Sovereign AI agent integration platform.',
     score: 84,
     status: 'verified',
     vouched: 7.3,
@@ -184,7 +205,7 @@ export const agents: Agent[] = [
     handle: '@0xzerebro',
     token: '$ZEREBRO',
     category: 'Creative',
-    description: 'Cross-chain artist and content creation agent. Autonomous creative AI.',
+    description: 'Cross-chain artist and content creation agent.',
     score: 81,
     status: 'verified',
     vouched: 4.8,
@@ -200,7 +221,7 @@ export const agents: Agent[] = [
     handle: '@louderonbase',
     token: '$LOUDER',
     category: 'Creative',
-    description: 'On-chain musician AI agent. Creates and distributes music autonomously.',
+    description: 'On-chain musician AI agent.',
     score: 76,
     status: 'pending',
     vouched: 2.1,
@@ -211,15 +232,13 @@ export const agents: Agent[] = [
     recentlyAdded: true,
     launchPlatform: 'bankr'
   },
-  
-  // Tier 4: Specialized Agents
   {
     id: 'starkbot',
     name: 'StarkBot AI',
     handle: '@starkbotai',
     token: '$STARK',
     category: 'Infrastructure',
-    description: 'Infrastructure for autonomous agents and payments. Agent-to-agent transactions.',
+    description: 'Autonomous agents and payments infrastructure.',
     score: 83,
     status: 'verified',
     vouched: 5.9,
@@ -235,7 +254,7 @@ export const agents: Agent[] = [
     handle: '@Clawnch_Bot',
     token: '$CLAWNCH',
     category: 'Infrastructure',
-    description: 'Agent-only token launch platform. High volume autonomous deployments.',
+    description: 'Agent-only token launch platform.',
     score: 79,
     status: 'verified',
     vouched: 3.4,
@@ -251,13 +270,13 @@ export const agents: Agent[] = [
     handle: '@LOBSTERXBTAI',
     token: '$LOBSTER',
     category: 'Analytics',
-    description: 'Market tracking and on-chain data agent. Real-time analytics and alerts.',
+    description: 'Market tracking and on-chain data agent.',
     score: 77,
     status: 'pending',
     vouched: 2.8,
     reviews: 19,
     twitter: 'LOBSTERXBTAI',
-    logo: '🦞',
+    logo: 'LX',
     gradient: 'from-red-600 to-orange-500',
     launchPlatform: 'bankr'
   },
@@ -267,7 +286,7 @@ export const agents: Agent[] = [
     handle: '@SimulacrumIO',
     token: '$SIM',
     category: 'Infrastructure',
-    description: 'Natural language AI agent launches from X. Tweet-to-agent deployment.',
+    description: 'Tweet-to-agent deployment platform.',
     score: 74,
     status: 'pending',
     vouched: 1.9,
@@ -284,13 +303,13 @@ export const agents: Agent[] = [
     handle: '@cookiedotfun',
     token: '$COOKIE',
     category: 'Analytics',
-    description: 'AI agent data and indexing platform. Tracks agent metrics and performance.',
+    description: 'AI agent data and indexing platform.',
     score: 80,
     status: 'verified',
     vouched: 4.2,
     reviews: 25,
     twitter: 'cookiedotfun',
-    logo: '🍪',
+    logo: 'CO',
     gradient: 'from-yellow-600 to-amber-500',
     launchPlatform: 'other'
   },
@@ -300,7 +319,7 @@ export const agents: Agent[] = [
     handle: '@Kudai_IO',
     token: '$KUDAI',
     category: 'DeFi',
-    description: 'Real-yield focused agent. Automated yield optimization strategies.',
+    description: 'Real-yield focused automation agent.',
     score: 73,
     status: 'pending',
     vouched: 1.5,
@@ -316,7 +335,7 @@ export const agents: Agent[] = [
     handle: '@HoloworldAI',
     token: '$HOLO',
     category: 'Creative',
-    description: 'Character and storytelling engine. Creates interactive AI narratives.',
+    description: 'Character and storytelling AI engine.',
     score: 71,
     status: 'pending',
     vouched: 1.2,
@@ -333,7 +352,7 @@ export const agents: Agent[] = [
     handle: '@AlmanaxAI',
     token: '$ALMANAX',
     category: 'Security',
-    description: 'Blockchain vulnerability-finding agent. Automated security audits.',
+    description: 'Blockchain vulnerability-finding agent.',
     score: 78,
     status: 'verified',
     vouched: 3.1,
@@ -349,7 +368,7 @@ export const agents: Agent[] = [
     handle: '@MorpheusAIs',
     token: '$MOR',
     category: 'Infrastructure',
-    description: 'Network for capital, code, and compute agents. Decentralized AI infrastructure.',
+    description: 'Decentralized AI infrastructure network.',
     score: 82,
     status: 'verified',
     vouched: 5.5,
@@ -368,5 +387,5 @@ export const getVerifiedAgents = () => agents.filter(a => a.status === 'verified
 export const getAgentsByCategory = (cat: string) => agents.filter(a => a.category === cat)
 export const getAgentById = (id: string) => agents.find(a => a.id === id)
 export const getTotalVouched = () => agents.reduce((sum, a) => sum + a.vouched, 0)
+export const getTotalVouchedUSD = () => getTotalVouched() * ETH_PRICE
 export const getVerifiedCount = () => agents.filter(a => a.status === 'verified').length
-// Force rebuild Fri Feb 13 17:52:31 UTC 2026
