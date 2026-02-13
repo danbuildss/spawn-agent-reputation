@@ -14,40 +14,16 @@ interface UseAgentsReturn {
 }
 
 export function useAgents(): UseAgentsReturn {
-  const [agents, setAgents] = useState<Agent[]>(staticAgents)
+  // Use only verified static agents - no external API
+  // Other agents can pay to get verified and added
+  const [agents] = useState<Agent[]>(staticAgents)
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [error] = useState<string | null>(null)
 
   useEffect(() => {
-    async function fetchAgents() {
-      try {
-        const res = await fetch('/api/agents')
-        if (!res.ok) throw new Error('Failed to fetch')
-        
-        const data = await res.json()
-        
-        if (data.agents && data.agents.length > 0) {
-          // Merge API agents with static agents, preferring static for known agents
-          const staticIds = new Set(staticAgents.map(a => a.id))
-          const apiAgents = data.agents.filter((a: Agent) => !staticIds.has(a.id))
-          
-          // Combine: static agents first (higher quality data), then API agents
-          const combined = [...staticAgents, ...apiAgents]
-            .sort((a, b) => b.score - a.score)
-            .slice(0, 100)
-          
-          setAgents(combined)
-        }
-      } catch (err) {
-        console.error('Failed to fetch agents:', err)
-        setError('Using cached data')
-        // Keep using static agents as fallback
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchAgents()
+    // Simulate brief loading for UX
+    const timer = setTimeout(() => setLoading(false), 300)
+    return () => clearTimeout(timer)
   }, [])
 
   const featuredAgents = agents.filter(a => a.featured || a.score >= 90).slice(0, 6)
