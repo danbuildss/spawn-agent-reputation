@@ -24,6 +24,12 @@ export interface Agent {
   featured?: boolean
   recentlyAdded?: boolean
   launchPlatform?: 'bankr' | 'clanker' | 'virtuals' | 'other'
+  imageUrl?: string | null
+  priceUsd?: string
+  liquidity?: number
+  volume24h?: number
+  marketCap?: number
+  priceChange24h?: number
 }
 
 // Format vouched amount with USD value
@@ -61,6 +67,7 @@ export const agents: Agent[] = [
     status: 'verified',
     vouched: 24.5,
     reviews: 89,
+    contract: '0x22aF33FE49fD1Fa80c7149773dDe5890D3c76F3b',
     twitter: 'bankrbot',
     logo: 'B',
     gradient: 'from-green-500 to-emerald-500',
@@ -78,6 +85,7 @@ export const agents: Agent[] = [
     status: 'verified',
     vouched: 18.2,
     reviews: 67,
+    contract: '0x1bc0c42215582d5A085795F3E8d98e39f4e9D6b0',
     twitter: 'clanker_world',
     logo: 'C',
     gradient: 'from-purple-500 to-pink-500',
@@ -95,6 +103,7 @@ export const agents: Agent[] = [
     status: 'verified',
     vouched: 31.0,
     reviews: 124,
+    contract: '0x0b3e328455c4059EEb9e3f84b5543F74E24e7E1b',
     twitter: 'virtuals_io',
     logo: 'V',
     gradient: 'from-blue-500 to-cyan-500',
@@ -112,6 +121,7 @@ export const agents: Agent[] = [
     status: 'verified',
     vouched: 12.8,
     reviews: 56,
+    contract: '0xCb95a02A4D4D89b9A4D2F1D08A05A5F8C3C4Ab5D',
     twitter: 'clawdbotatg',
     logo: 'CL',
     gradient: 'from-orange-500 to-red-500',

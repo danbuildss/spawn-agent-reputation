@@ -3,7 +3,7 @@
 import { motion } from 'framer-motion'
 import { useState } from 'react'
 import Link from 'next/link'
-import { ChevronDown, ChevronUp, Check, Clock, Shield, Loader2 } from 'lucide-react'
+import { ChevronDown, ChevronUp, Check, Clock, Shield, Loader2, Copy, ExternalLink } from 'lucide-react'
 import { useAgentsContext } from './AgentsProvider'
 import { formatVouchedShort } from '@/lib/agents-data'
 
@@ -11,6 +11,9 @@ type SortField = 'name' | 'score' | 'vouched'
 type SortDir = 'asc' | 'desc'
 
 const categories = ['All', 'Infrastructure', 'DeFi', 'Analytics', 'Social', 'Creative', 'Trading', 'Security']
+
+// Truncate address for display
+const truncateAddress = (addr: string) => addr ? `${addr.slice(0, 6)}...${addr.slice(-4)}` : ''
 
 export default function AgentDirectory() {
   const { agents, loading } = useAgentsContext()
@@ -126,9 +129,21 @@ export default function AgentDirectory() {
                   >
                     {/* Agent Name */}
                     <div className="col-span-8 md:col-span-4 flex items-center gap-2 md:gap-3">
-                      <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${agent.gradient} flex items-center justify-center text-xs font-bold text-white flex-shrink-0`}>
-                        {agent.logo.slice(0, 2)}
-                      </div>
+                      {/* Agent Logo/Image */}
+                      {(agent as any).imageUrl ? (
+                        <img 
+                          src={(agent as any).imageUrl} 
+                          alt={agent.name}
+                          className="w-8 h-8 rounded-lg flex-shrink-0 object-cover"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).style.display = 'none'
+                          }}
+                        />
+                      ) : (
+                        <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${agent.gradient} flex items-center justify-center text-xs font-bold text-white flex-shrink-0`}>
+                          {agent.logo.slice(0, 2)}
+                        </div>
+                      )}
                       <div className="min-w-0">
                         <div className="flex items-center gap-1.5">
                           <span className="text-foreground font-medium text-sm group-hover:text-accent transition-colors truncate">
@@ -136,7 +151,14 @@ export default function AgentDirectory() {
                           </span>
                           {agent.status === 'verified' && <Shield className="w-3 h-3 text-green-400 flex-shrink-0" />}
                         </div>
-                        <div className="text-muted text-xs truncate">{agent.token}</div>
+                        <div className="flex items-center gap-2 text-muted text-xs">
+                          <span>{agent.token}</span>
+                          {agent.contract && (
+                            <span className="hidden md:inline text-muted-foreground font-mono">
+                              {truncateAddress(agent.contract)}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
 
