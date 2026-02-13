@@ -10,6 +10,7 @@ module.exports = {
       colors: {
         accent: '#0052FF',
         dark: '#0a0a0a',
+        border: 'rgba(255, 255, 255, 0.1)',
       },
       animation: {
         'float': 'float 6s ease-in-out infinite',
