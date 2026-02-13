@@ -369,3 +369,4 @@ export const getAgentsByCategory = (cat: string) => agents.filter(a => a.categor
 export const getAgentById = (id: string) => agents.find(a => a.id === id)
 export const getTotalVouched = () => agents.reduce((sum, a) => sum + a.vouched, 0)
 export const getVerifiedCount = () => agents.filter(a => a.status === 'verified').length
+// Force rebuild Fri Feb 13 17:52:31 UTC 2026
