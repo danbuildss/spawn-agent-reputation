@@ -4,10 +4,11 @@ import { motion } from 'framer-motion'
 import Link from 'next/link'
 import { Star, Shield, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useRef } from 'react'
-import { getFeaturedAgents, formatVouchedShort } from '@/lib/agents-data'
+import { useAgentsContext } from './AgentsProvider'
+import { formatVouchedShort } from '@/lib/agents-data'
 
 export default function FeaturedAgents() {
-  const featuredAgents = getFeaturedAgents()
+  const { featuredAgents, loading } = useAgentsContext()
   const scrollRef = useRef<HTMLDivElement>(null)
 
   const scroll = (direction: 'left' | 'right') => {
@@ -17,6 +18,24 @@ export default function FeaturedAgents() {
         behavior: 'smooth'
       })
     }
+  }
+
+  if (loading) {
+    return (
+      <section className="py-6 px-4 md:px-6 border-b border-border">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-center gap-2 mb-4">
+            <Star className="w-4 h-4 text-yellow-500" />
+            <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Featured</h3>
+          </div>
+          <div className="flex gap-3">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="flex-shrink-0 w-[280px] h-[120px] bg-card border border-border rounded-xl animate-pulse" />
+            ))}
+          </div>
+        </div>
+      </section>
+    )
   }
 
   return (

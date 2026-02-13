@@ -1,11 +1,13 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { agents, getVerifiedCount, getTotalVouched, getTotalVouchedUSD } from '@/lib/agents-data'
+import { useAgentsContext } from './AgentsProvider'
+import { ETH_PRICE } from '@/lib/agents-data'
 
 export default function Stats() {
-  const totalVouched = getTotalVouched()
-  const totalUSD = getTotalVouchedUSD()
+  const { agents, verifiedCount, totalVouched, loading } = useAgentsContext()
+  
+  const totalUSD = totalVouched * ETH_PRICE
   
   const formatUSD = (val: number) => {
     if (val >= 1000000) return `$${(val / 1000000).toFixed(1)}M`
@@ -14,9 +16,9 @@ export default function Stats() {
   }
 
   const stats = [
-    { label: 'Agents', value: agents.length.toString() },
-    { label: 'Verified', value: getVerifiedCount().toString() },
-    { label: 'Vouched', value: `${totalVouched.toFixed(1)} ETH`, sub: formatUSD(totalUSD) },
+    { label: 'Agents', value: loading ? '...' : agents.length.toString() },
+    { label: 'Verified', value: loading ? '...' : verifiedCount.toString() },
+    { label: 'Trust Value', value: loading ? '...' : `${totalVouched.toFixed(1)} ETH`, sub: formatUSD(totalUSD) },
   ]
 
   return (
@@ -24,17 +26,17 @@ export default function Stats() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.6, delay: 0.3 }}
-      className="py-4 px-4 md:px-6 border-y border-white/5"
+      className="py-4 px-4 md:px-6 border-y border-border"
     >
-      <div className="max-w-5xl mx-auto flex items-center justify-center gap-6 md:gap-12 text-sm">
+      <div className="max-w-7xl mx-auto flex items-center justify-center gap-6 md:gap-12 text-sm">
         {stats.map((stat, i) => (
           <div key={stat.label} className="flex items-center gap-1.5 md:gap-2">
             <div className="text-center md:text-left">
-              <span className="text-white font-semibold">{stat.value}</span>
-              {stat.sub && <span className="text-gray-500 text-xs ml-1">/ {stat.sub}</span>}
+              <span className="text-foreground font-semibold">{stat.value}</span>
+              {stat.sub && <span className="text-muted-foreground text-xs ml-1">/ {stat.sub}</span>}
             </div>
-            <span className="text-gray-500 text-xs md:text-sm">{stat.label}</span>
-            {i < stats.length - 1 && <span className="text-gray-700 ml-4 hidden md:inline">|</span>}
+            <span className="text-muted-foreground text-xs md:text-sm">{stat.label}</span>
+            {i < stats.length - 1 && <span className="text-muted ml-4 hidden md:inline">|</span>}
           </div>
         ))}
       </div>

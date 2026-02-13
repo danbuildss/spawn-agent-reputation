@@ -4,10 +4,10 @@ import { motion } from 'framer-motion'
 import Link from 'next/link'
 import { Sparkles, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useRef } from 'react'
-import { getRecentlyAdded } from '@/lib/agents-data'
+import { useAgentsContext } from './AgentsProvider'
 
 export default function RecentlyAdded() {
-  const recentAgents = getRecentlyAdded()
+  const { recentAgents, loading } = useAgentsContext()
   const scrollRef = useRef<HTMLDivElement>(null)
 
   const scroll = (direction: 'left' | 'right') => {
@@ -17,6 +17,10 @@ export default function RecentlyAdded() {
         behavior: 'smooth'
       })
     }
+  }
+
+  if (loading || recentAgents.length === 0) {
+    return null // Hide if no recent agents
   }
 
   return (
