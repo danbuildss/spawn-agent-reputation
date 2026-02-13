@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spawn - Agent Reputation OnChain</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+        
+        * {
+            font-family: 'Inter', sans-serif;
+        }
+        
+        body {
+            background: #0a0a0a;
+            background-image: radial-gradient(ellipse at center, rgba(0, 82, 255, 0.15) 0%, rgba(138, 43, 226, 0.1) 50%, #0a0a0a 100%);
+            min-height: 100vh;
+        }
+        
+        .glass-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 1rem;
+        }
+        
+        .glass-button {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 1rem;
+            padding: 0.75rem 1.5rem;
+            transition: all 0.3s;
+        }
+        
+        .glass-button:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: scale(1.05);
+        }
+        
+        .glass-input {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 1rem;
+            padding: 1rem 1.5rem;
+            width: 100%;
+            outline: none;
+            color: white;
+            transition: all 0.3s;
+        }
+        
+        .glass-input:focus {
+            border-color: rgba(0, 82, 255, 0.5);
+        }
+        
+        .glass-input::placeholder {
+            color: rgba(156, 163, 175, 0.7);
+        }
+        
+        .trust-score {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.5rem 1rem;
+            border-radius: 9999px;
+            background: rgba(0, 82, 255, 0.2);
+            border: 1px solid rgba(0, 82, 255, 0.3);
+            color: #0052FF;
+            font-weight: bold;
+            box-shadow: 0 0 20px rgba(0, 82, 255, 0.3), inset 0 0 10px rgba(0, 82, 255, 0.1);
+        }
+        
+        .text-gradient {
+            background: linear-gradient(135deg, #0052FF 0%, #8a2be2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+        }
+        
+        @keyframes pulse-glow {
+            0%, 100% { 
+                opacity: 1;
+                box-shadow: 0 0 20px rgba(0, 82, 255, 0.5);
+            }
+            50% { 
+                opacity: 0.8;
+                box-shadow: 0 0 40px rgba(0, 82, 255, 0.8);
+            }
+        }
+        
+        .animate-float {
+            animation: float 6s ease-in-out infinite;
+        }
+        
+        .animate-pulse-glow {
+            animation: pulse-glow 2s ease-in-out infinite;
+        }
+        
+        .node {
+            animation: float ease-in-out infinite;
+        }
+        
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+    </style>
+</head>
+<body class="text-white antialiased">
+    <!-- Navigation -->
+    <nav class="fixed top-0 left-0 right-0 z-50 px-6 py-4">
+        <div class="max-w-7xl mx-auto glass-card px-6 py-4 flex items-center justify-between">
+            <div class="flex items-center gap-12">
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center">
+                        <div class="w-4 h-4 border-2 border-white rounded-full"></div>
+                    </div>
+                    <span class="text-xl font-bold">Spawn</span>
+                </div>
+                
+                <div class="hidden md:flex items-center gap-8 text-sm">
+                    <a href="#agents" class="text-gray-400 hover:text-white transition-colors">Agents</a>
+                    <a href="#verify" class="text-gray-400 hover:text-white transition-colors">Verify</a>
+                    <a href="#docs" class="text-gray-400 hover:text-white transition-colors">Docs</a>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-4">
+                <button class="p-2 hover:bg-white/5 rounded-lg transition-colors">
+                    <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                    </svg>
+                </button>
+                <button class="glass-button text-sm font-medium">Launch App</button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero -->
+    <section class="pt-40 pb-20 px-6">
+        <div class="max-w-7xl mx-auto">
+            <div class="text-center mb-16">
+                <h1 class="text-5xl md:text-6xl lg:text-7xl font-bold mb-6">
+                    Agent Reputation, <span class="text-gradient">OnChain</span>
+                </h1>
+                <p class="text-xl text-gray-400 max-w-2xl mx-auto">
+                    Trust scores for AI agents. Rug-proof your portfolio.
+                </p>
+            </div>
+
+            <!-- Central Visualization -->
+            <div class="relative h-[500px] mb-16 flex items-center justify-center">
+                <div class="absolute inset-0 flex items-center justify-center">
+                    <div class="w-32 h-32 rounded-full bg-blue-600/30 blur-3xl animate-pulse"></div>
+                    <div class="absolute w-24 h-24 rounded-full border-2 border-blue-600/50 flex items-center justify-center">
+                        <div class="w-16 h-16 rounded-full bg-gradient-to-br from-blue-600 to-purple-600 animate-pulse-glow"></div>
+                    </div>
+                </div>
+
+                <!-- Floating Nodes -->
+                <div class="absolute node" style="left: 50%; top: 50%; transform: translate(calc(-50% + 180px), calc(-50% + 0px)); animation-duration: 3s;">
+                    <div class="glass-card px-4 py-2 flex items-center gap-2">
+                        <div class="w-2 h-2 rounded-full bg-green-500"></div>
+                        <span class="text-sm font-medium">Luna</span>
+                        <span class="text-xs text-gray-400">•</span>
+                        <span class="text-sm font-bold text-blue-600">94</span>
+                    </div>
+                </div>
+                
+                <div class="absolute node" style="left: 50%; top: 50%; transform: translate(calc(-50% + 90px), calc(-50% + 173px)); animation-duration: 3.5s;">
+                    <div class="glass-card px-4 py-2 flex items-center gap-2">
+                        <div class="w-2 h-2 rounded-full bg-yellow-500"></div>
+                        <span class="text-sm font-medium">Astra</span>
+                        <span class="text-xs text-gray-400">•</span>
+                        <span class="text-sm font-bold text-blue-600">72</span>
+                    </div>
+                </div>
+                
+                <div class="absolute node" style="left: 50%; top: 50%; transform: translate(calc(-50% - 90px), calc(-50% + 147px)); animation-duration: 4s;">
+                    <div class="glass-card px-4 py-2 flex items-center gap-2">
+                        <div class="w-2 h-2 rounded-full bg-green-500"></div>
+                        <span class="text-sm font-medium">Nova</span>
+                        <span class="text-xs text-gray-400">•</span>
+                        <span class="text-sm font-bold text-blue-600">88</span>
+                    </div>
+                </div>
+                
+                <div class="absolute node" style="left: 50%; top: 50%; transform: translate(calc(-50% - 190px), calc(-50% + 0px)); animation-duration: 3.2s;">
+                    <div class="glass-card px-4 py-2 flex items-center gap-2">
+                        <div class="w-2 h-2 rounded-full bg-green-500"></div>
+                        <span class="text-sm font-medium">Orion</span>
+                        <span class="text-xs text-gray-400">•</span>
+                        <span class="text-sm font-bold text-blue-600">91</span>
+                    </div>
+                </div>
+                
+                <div class="absolute node" style="left: 50%; top: 50%; transform: translate(calc(-50% - 87px), calc(-50% - 151px)); animation-duration: 3.8s;">
+                    <div class="glass-card px-4 py-2 flex items-center gap-2">
+                        <div class="w-2 h-2 rounded-full bg-green-500"></div>
+                        <span class="text-sm font-medium">Zenith</span>
+                        <span class="text-xs text-gray-400">•</span>
+                        <span class="text-sm font-bold text-blue-600">85</span>
+                    </div>
+                </div>
+                
+                <div class="absolute node" style="left: 50%; top: 50%; transform: translate(calc(-50% + 92px), calc(-50% - 160px)); animation-duration: 4.2s;">
+                    <div class="glass-card px-4 py-2 flex items-center gap-2">
+                        <div class="w-2 h-2 rounded-full bg-yellow-500"></div>
+                        <span class="text-sm font-medium">Echo</span>
+                        <span class="text-xs text-gray-400">•</span>
+                        <span class="text-sm font-bold text-blue-600">79</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Search Bar -->
+            <div class="max-w-2xl mx-auto">
+                <div class="relative">
+                    <svg class="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                    </svg>
+                    <input type="text" placeholder="Search agent name or contract address..." class="glass-input pl-14 text-sm">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Stats -->
+    <section class="py-20 px-6">
+        <div class="max-w-7xl mx-auto">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="glass-card p-8 text-center hover:bg-white/10 transition-all">
+                    <div class="text-4xl md:text-5xl font-bold mb-3 text-gradient">2,400+</div>
+                    <div class="text-gray-400 text-sm uppercase tracking-wider">Agents Indexed</div>
+                </div>
+                <div class="glass-card p-8 text-center hover:bg-white/10 transition-all">
+                    <div class="text-4xl md:text-5xl font-bold mb-3 text-gradient">94.2%</div>
+                    <div class="text-gray-400 text-sm uppercase tracking-wider">Avg Trust Score</div>
+                </div>
+                <div class="glass-card p-8 text-center hover:bg-white/10 transition-all">
+                    <div class="text-4xl md:text-5xl font-bold mb-3 text-gradient">$2.1M</div>
+                    <div class="text-gray-400 text-sm uppercase tracking-wider">Value Protected</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Top Agents -->
+    <section class="py-20 px-6">
+        <div class="max-w-7xl mx-auto">
+            <div class="mb-12">
+                <h2 class="text-3xl md:text-4xl font-bold mb-4">Top Performing Agents</h2>
+                <p class="text-gray-400">Highest rated agents based on onchain reputation</p>
+            </div>
+
+            <div class="flex gap-6 overflow-x-auto pb-4 scrollbar-hide">
+                <div class="glass-card p-6 min-w-[300px] hover:bg-white/10 transition-all">
+                    <div class="flex items-start gap-4 mb-4">
+                        <div class="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-xl font-bold flex-shrink-0">L</div>
+                        <div>
+                            <h3 class="font-semibold text-lg mb-1">Luna Protocol</h3>
+                            <div class="trust-score text-sm">94</div>
+                        </div>
+                    </div>
+                    <div class="space-y-2 text-sm">
+                        <div class="flex justify-between text-gray-400">
+                            <span>Vouched</span>
+                            <span class="text-white font-medium">0.5 ETH</span>
+                        </div>
+                        <div class="flex justify-between text-gray-400">
+                            <span>Reviews</span>
+                            <span class="text-white font-medium">12</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-card p-6 min-w-[300px] hover:bg-white/10 transition-all">
+                    <div class="flex items-start gap-4 mb-4">
+                        <div class="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-xl font-bold flex-shrink-0">A</div>
+                        <div>
+                            <h3 class="font-semibold text-lg mb-1">Astra Finance</h3>
+                            <div class="trust-score text-sm">91</div>
+                        </div>
+                    </div>
+                    <div class="space-y-2 text-sm">
+                        <div class="flex justify-between text-gray-400">
+                            <span>Vouched</span>
+                            <span class="text-white font-medium">1.2 ETH</span>
+                        </div>
+                        <div class="flex justify-between text-gray-400">
+                            <span>Reviews</span>
+                            <span class="text-white font-medium">24</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-card p-6 min-w-[300px] hover:bg-white/10 transition-all">
+                    <div class="flex items-start gap-4 mb-4">
+                        <div class="w-12 h-12 rounded-full bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center text-xl font-bold flex-shrink-0">N</div>
+                        <div>
+                            <h3 class="font-semibold text-lg mb-1">Nova Trading</h3>
+                            <div class="trust-score text-sm">88</div>
+                        </div>
+                    </div>
+                    <div class="space-y-2 text-sm">
+                        <div class="flex justify-between text-gray-400">
+                            <span>Vouched</span>
+                            <span class="text-white font-medium">0.8 ETH</span>
+                        </div>
+                        <div class="flex justify-between text-gray-400">
+                            <span>Reviews</span>
+                            <span class="text-white font-medium">18</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works -->
+    <section class="py-20 px-6">
+        <div class="max-w-7xl mx-auto">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl md:text-4xl font-bold mb-4">How It Works</h2>
+                <p class="text-gray-400 max-w-2xl mx-auto">Three simple steps to verify any AI agent's reputation</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div class="glass-card p-8 hover:bg-white/10 transition-all group">
+                    <div class="w-16 h-16 rounded-2xl bg-blue-600/20 border border-blue-600/30 flex items-center justify-center mb-6">
+                        <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                        </svg>
+                    </div>
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="text-4xl font-bold text-gray-700">01</div>
+                        <h3 class="text-2xl font-bold">Search</h3>
+                    </div>
+                    <p class="text-gray-400">Enter any agent name or contract address to begin verification</p>
+                </div>
+
+                <div class="glass-card p-8 hover:bg-white/10 transition-all group">
+                    <div class="w-16 h-16 rounded-2xl bg-blue-600/20 border border-blue-600/30 flex items-center justify-center mb-6">
+                        <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                        </svg>
+                    </div>
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="text-4xl font-bold text-gray-700">02</div>
+                        <h3 class="text-2xl font-bold">Score</h3>
+                    </div>
+                    <p class="text-gray-400">Get instant trust scores based on onchain behavior and community vouching</p>
+                </div>
+
+                <div class="glass-card p-8 hover:bg-white/10 transition-all group">
+                    <div class="w-16 h-16 rounded-2xl bg-blue-600/20 border border-blue-600/30 flex items-center justify-center mb-6">
+                        <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                        </svg>
+                    </div>
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="text-4xl font-bold text-gray-700">03</div>
+                        <h3 class="text-2xl font-bold">Verify</h3>
+                    </div>
+                    <p class="text-gray-400">Make informed decisions with transparent, immutable reputation data</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="py-20 px-6">
+        <div class="max-w-7xl mx-auto">
+            <div class="glass-card p-12 md:p-16 text-center relative overflow-hidden">
+                <div class="absolute inset-0 bg-gradient-to-br from-blue-600/10 via-purple-600/5 to-transparent"></div>
+                <div class="relative z-10">
+                    <h2 class="text-4xl md:text-5xl font-bold mb-6">Check Any Agent Now</h2>
+                    <p class="text-gray-400 text-lg mb-12 max-w-2xl mx-auto">
+                        Don't get rugged. Verify agent reputation before you invest.
+                    </p>
+                    <div class="max-w-3xl mx-auto flex gap-4">
+                        <div class="flex-1 relative">
+                            <svg class="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                            </svg>
+                            <input type="text" placeholder="Search agent name or contract address..." class="glass-input pl-14">
+                        </div>
+                        <button class="glass-button whitespace-nowrap px-8">Verify Now</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="py-12 px-6 border-t border-white/5">
+        <div class="max-w-7xl mx-auto">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">
+                <div>
+                    <div class="flex items-center gap-2 mb-4">
+                        <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center">
+                            <div class="w-4 h-4 border-2 border-white rounded-full"></div>
+                        </div>
+                        <span class="text-xl font-bold">Spawn</span>
+                    </div>
+                    <p class="text-sm text-gray-400">Institutional-grade trust infrastructure for AI agents</p>
+                </div>
+
+                <div>
+                    <h4 class="font-semibold mb-4">Product</h4>
+                    <ul class="space-y-2 text-sm text-gray-400">
+                        <li><a href="#agents" class="hover:text-white transition-colors">Agents</a></li>
+                        <li><a href="#verify" class="hover:text-white transition-colors">Verify</a></li>
+                        <li><a href="#api" class="hover:text-white transition-colors">API</a></li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h4 class="font-semibold mb-4">Resources</h4>
+                    <ul class="space-y-2 text-sm text-gray-400">
+                        <li><a href="#docs" class="hover:text-white transition-colors">Documentation</a></li>
+                        <li><a href="#guides" class="hover:text-white transition-colors">Guides</a></li>
+                        <li><a href="#support" class="hover:text-white transition-colors">Support</a></li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h4 class="font-semibold mb-4">Community</h4>
+                    <ul class="space-y-2 text-sm text-gray-400">
+                        <li><a href="#twitter" class="hover:text-white transition-colors">Twitter</a></li>
+                        <li><a href="#farcaster" class="hover:text-white transition-colors">Farcaster</a></li>
+                        <li><a href="#discord" class="hover:text-white transition-colors">Discord</a></li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="pt-8 border-t border-white/5 flex flex-col md:flex-row items-center justify-between gap-4">
+                <div class="flex items-center gap-6 text-sm text-gray-400">
+                    <div class="flex items-center gap-2">
+                        <div class="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></div>
+                        <span>Built on Base</span>
+                    </div>
+                    <span>© 2026 Spawn</span>
+                </div>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>
