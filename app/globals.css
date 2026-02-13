@@ -14,31 +14,36 @@
   body {
     @apply text-white antialiased;
     background: #0a0a0a;
-    background-image: radial-gradient(ellipse at center top, rgba(0, 82, 255, 0.06) 0%, transparent 50%);
+    background-image: radial-gradient(ellipse at center, rgba(0, 82, 255, 0.08) 0%, rgba(138, 43, 226, 0.05) 50%, transparent 100%);
     min-height: 100vh;
   }
 }
 
 @layer components {
   .glass-card {
-    @apply bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl;
+    @apply bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl;
   }
   
   .glass-button {
-    @apply glass-card px-4 py-2 hover:bg-white/10 transition-colors;
+    @apply glass-card px-6 py-3 hover:bg-white/10 transition-all duration-300 hover:scale-105;
   }
   
   .glass-input {
-    @apply bg-black/30 backdrop-blur-sm border border-white/10 rounded-xl px-4 py-3 w-full outline-none focus:border-white/20 transition-colors;
+    @apply glass-card px-6 py-4 w-full outline-none focus:border-accent/50 transition-all duration-300 bg-black/30;
     color: white;
   }
   
   .glass-input::placeholder {
-    color: rgba(255, 255, 255, 0.3);
+    color: rgba(255, 255, 255, 0.4);
+  }
+  
+  .glow-accent {
+    text-shadow: 0 0 20px rgba(0, 82, 255, 0.5);
   }
   
   .trust-score {
-    @apply inline-flex items-center justify-center px-3 py-1 rounded-full bg-[#0052FF]/20 border border-[#0052FF]/30 text-[#0052FF] font-bold text-sm;
+    @apply inline-flex items-center justify-center px-4 py-2 rounded-full bg-accent/20 border border-accent/30 text-accent font-bold;
+    box-shadow: 0 0 20px rgba(0, 82, 255, 0.3), inset 0 0 10px rgba(0, 82, 255, 0.1);
   }
 }
 
