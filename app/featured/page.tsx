@@ -47,7 +47,7 @@ const tiers = [
   },
   {
     name: 'Featured',
-    price: '$499',
+    price: '$100',
     period: 'per month',
     description: 'Maximum visibility',
     features: [

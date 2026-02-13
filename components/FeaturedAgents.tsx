@@ -2,38 +2,62 @@
 
 import { motion } from 'framer-motion'
 import Link from 'next/link'
-import { Star, Shield } from 'lucide-react'
+import { Star, Shield, ChevronLeft, ChevronRight } from 'lucide-react'
+import { useRef } from 'react'
 import { getFeaturedAgents, formatVouchedShort } from '@/lib/agents-data'
 
 export default function FeaturedAgents() {
   const featuredAgents = getFeaturedAgents()
+  const scrollRef = useRef<HTMLDivElement>(null)
+
+  const scroll = (direction: 'left' | 'right') => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollBy({
+        left: direction === 'left' ? -300 : 300,
+        behavior: 'smooth'
+      })
+    }
+  }
 
   return (
-    <section className="py-6 px-4 md:px-6 border-b border-white/5">
-      <div className="max-w-5xl mx-auto">
+    <section className="py-6 px-4 md:px-6 border-b border-border">
+      <div className="max-w-7xl mx-auto">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <Star className="w-4 h-4 text-yellow-500" />
-            <h3 className="text-sm font-medium text-gray-400 uppercase tracking-wider">Featured</h3>
+            <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Featured</h3>
           </div>
-          <Link href="/featured" className="text-xs text-accent hover:underline">
-            Get Featured →
-          </Link>
+          <div className="flex items-center gap-2">
+            <button onClick={() => scroll('left')} className="p-1.5 rounded-lg hover:bg-card transition-colors">
+              <ChevronLeft className="w-4 h-4 text-muted-foreground" />
+            </button>
+            <button onClick={() => scroll('right')} className="p-1.5 rounded-lg hover:bg-card transition-colors">
+              <ChevronRight className="w-4 h-4 text-muted-foreground" />
+            </button>
+            <Link href="/featured" className="text-xs text-accent hover:underline ml-2">
+              Get Featured →
+            </Link>
+          </div>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div 
+          ref={scrollRef}
+          className="flex gap-3 overflow-x-auto scrollbar-hide pb-2 -mx-4 px-4 md:mx-0 md:px-0"
+          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+        >
           {featuredAgents.map((agent, i) => {
             const vouched = formatVouchedShort(agent.vouched)
             return (
               <motion.div
                 key={agent.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.4, delay: i * 0.1 }}
+                className="flex-shrink-0 w-[280px]"
               >
                 <Link 
                   href={`/agent/${agent.id}`}
-                  className="block p-4 bg-gradient-to-br from-accent/10 via-purple-500/5 to-transparent border border-accent/20 rounded-lg hover:border-accent/40 transition-all group"
+                  className="block p-4 bg-gradient-to-br from-accent/10 via-purple-500/5 to-transparent border border-accent/20 rounded-xl hover:border-accent/40 transition-all group h-full"
                 >
                   <div className="flex items-start gap-3">
                     <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${agent.gradient} flex items-center justify-center text-sm font-bold text-white flex-shrink-0`}>
@@ -42,12 +66,12 @@ export default function FeaturedAgents() {
                     
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
-                        <h4 className="font-semibold text-white group-hover:text-accent transition-colors text-sm truncate">
+                        <h4 className="font-semibold text-foreground group-hover:text-accent transition-colors text-sm truncate">
                           {agent.name}
                         </h4>
                         {agent.status === 'verified' && <Shield className="w-3 h-3 text-green-400 flex-shrink-0" />}
                       </div>
-                      <p className="text-xs text-gray-400 line-clamp-2 mb-2">
+                      <p className="text-xs text-muted-foreground line-clamp-2 mb-2">
                         {agent.description}
                       </p>
                       
@@ -56,13 +80,10 @@ export default function FeaturedAgents() {
                           <span className={`font-bold ${
                             agent.score >= 90 ? 'text-green-400' : 'text-yellow-400'
                           }`}>{agent.score}</span>
-                          <span className="text-gray-600">•</span>
-                          <span className="text-gray-500">{agent.token}</span>
+                          <span className="text-muted">•</span>
+                          <span className="text-muted-foreground">{agent.token}</span>
                         </div>
-                        <div className="text-right">
-                          <span className="text-gray-400">{vouched.eth}</span>
-                          <span className="text-gray-600 ml-1">/ {vouched.usd}</span>
-                        </div>
+                        <span className="text-muted-foreground">{vouched.usd}</span>
                       </div>
                     </div>
                   </div>

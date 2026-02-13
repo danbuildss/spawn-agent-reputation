@@ -1,23 +1,39 @@
 'use client'
 
 import { Twitter } from 'lucide-react'
+import Link from 'next/link'
 
 export default function Footer() {
   return (
-    <footer className="py-8 px-6 border-t border-white/5">
-      <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 text-sm">
-        <div className="flex items-center gap-6">
-          <span className="font-medium text-white">spawn</span>
-          <span className="text-gray-600">The agent reputation directory</span>
+    <footer className="py-8 px-4 md:px-6 border-t border-border">
+      <div className="max-w-7xl mx-auto">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-4 text-sm">
+          <div className="flex items-center gap-4">
+            <span className="font-medium text-foreground">spawn</span>
+            <span className="text-muted-foreground">Agent Reputation Platform</span>
+          </div>
+          
+          <div className="flex items-center gap-6 text-muted-foreground">
+            <Link href="/submit" className="hover:text-foreground transition-colors">Submit</Link>
+            <Link href="/featured" className="hover:text-foreground transition-colors">Featured</Link>
+            <Link href="#api" className="hover:text-foreground transition-colors">API</Link>
+            <a href="https://twitter.com/danbuildss" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">
+              <Twitter className="w-4 h-4" />
+            </a>
+          </div>
         </div>
         
-        <div className="flex items-center gap-6 text-gray-500">
-          <a href="#docs" className="hover:text-white transition-colors">Docs</a>
-          <a href="#api" className="hover:text-white transition-colors">API</a>
-          <a href="#" className="hover:text-white transition-colors">
-            <Twitter className="w-4 h-4" />
-          </a>
-          <span className="text-gray-600">Built on Base</span>
+        <div className="flex flex-col md:flex-row items-center justify-between gap-2 mt-6 pt-6 border-t border-border text-xs text-muted-foreground">
+          <div className="flex items-center gap-1.5">
+            <div className="w-1.5 h-1.5 rounded-full bg-accent" />
+            <span>Built on Base</span>
+          </div>
+          <div className="flex items-center gap-4">
+            <span>© 2026 Spawn</span>
+            <a href="https://twitter.com/danbuildss" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">
+              Built by @danbuildss
+            </a>
+          </div>
         </div>
       </div>
     </footer>
