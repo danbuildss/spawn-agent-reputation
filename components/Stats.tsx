@@ -1,41 +1,30 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { useInView } from 'framer-motion'
-import { useRef } from 'react'
 
 const stats = [
-  { label: 'Agents Indexed', value: '2,400+', delay: 0 },
-  { label: 'Avg Trust Score', value: '94.2%', delay: 0.1 },
-  { label: 'Value Protected', value: '$2.1M', delay: 0.2 },
+  { label: 'Agents Indexed', value: '2,847' },
+  { label: 'Verified', value: '342' },
+  { label: 'Value Protected', value: '$4.2M' },
 ]
 
 export default function Stats() {
-  const ref = useRef(null)
-  const isInView = useInView(ref, { once: true, margin: "-100px" })
-
   return (
-    <section ref={ref} className="py-20 px-6">
-      <div className="max-w-7xl mx-auto">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {stats.map((stat, index) => (
-            <motion.div
-              key={stat.label}
-              initial={{ opacity: 0, y: 20 }}
-              animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
-              transition={{ duration: 0.6, delay: stat.delay }}
-              className="glass-card p-8 text-center hover:bg-white/10 transition-all duration-300 group"
-            >
-              <div className="text-4xl md:text-5xl font-bold mb-3 text-gradient group-hover:scale-110 transition-transform duration-300 inline-block">
-                {stat.value}
-              </div>
-              <div className="text-gray-400 text-sm uppercase tracking-wider">
-                {stat.label}
-              </div>
-            </motion.div>
-          ))}
-        </div>
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.6, delay: 0.3 }}
+      className="py-6 px-6 border-y border-white/5"
+    >
+      <div className="max-w-5xl mx-auto flex items-center justify-center gap-8 md:gap-16 text-sm">
+        {stats.map((stat, i) => (
+          <div key={stat.label} className="flex items-center gap-2">
+            <span className="text-white font-semibold">{stat.value}</span>
+            <span className="text-gray-500">{stat.label}</span>
+            {i < stats.length - 1 && <span className="text-gray-700 ml-6 hidden md:inline">|</span>}
+          </div>
+        ))}
       </div>
-    </section>
+    </motion.div>
   )
 }
