@@ -6,9 +6,15 @@
   * {
     @apply border-border;
   }
+  
+  html {
+    background: #0a0a0a;
+  }
+  
   body {
-    @apply bg-dark text-white antialiased;
-    background: radial-gradient(ellipse at center, rgba(0, 82, 255, 0.15) 0%, rgba(138, 43, 226, 0.1) 50%, #0a0a0a 100%);
+    @apply text-white antialiased;
+    background: #0a0a0a;
+    background-image: radial-gradient(ellipse at center, rgba(0, 82, 255, 0.08) 0%, rgba(138, 43, 226, 0.05) 50%, transparent 100%);
     min-height: 100vh;
   }
 }
@@ -23,7 +29,12 @@
   }
   
   .glass-input {
-    @apply glass-card px-6 py-4 w-full outline-none focus:border-accent/50 transition-all duration-300;
+    @apply glass-card px-6 py-4 w-full outline-none focus:border-accent/50 transition-all duration-300 bg-black/30;
+    color: white;
+  }
+  
+  .glass-input::placeholder {
+    color: rgba(255, 255, 255, 0.4);
   }
   
   .glow-accent {
