@@ -6,6 +6,7 @@ import { Star, Shield, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useRef } from 'react'
 import { useAgentsContext } from './AgentsProvider'
 import { formatVouchedShort } from '@/lib/agents-data'
+import { getScoreTier, formatScore } from '@/lib/score-utils'
 
 export default function FeaturedAgents() {
   const { featuredAgents, loading } = useAgentsContext()
@@ -66,6 +67,7 @@ export default function FeaturedAgents() {
         >
           {featuredAgents.map((agent, i) => {
             const vouched = formatVouchedShort(agent.vouched)
+            const tier = getScoreTier(agent.score)
             return (
               <motion.div
                 key={agent.id}
@@ -96,11 +98,10 @@ export default function FeaturedAgents() {
                       
                       <div className="flex items-center justify-between text-xs">
                         <div className="flex items-center gap-2">
-                          <span className={`font-bold ${
-                            agent.score >= 90 ? 'text-green-400' : 'text-yellow-400'
-                          }`}>{agent.score}</span>
-                          <span className="text-muted">•</span>
-                          <span className="text-muted-foreground">{agent.token}</span>
+                          <span className={`font-bold ${tier.color}`}>
+                            {formatScore(agent.score)}
+                          </span>
+                          <span className={`text-xs ${tier.color}`}>{tier.label}</span>
                         </div>
                         <span className="text-muted-foreground">{vouched.usd}</span>
                       </div>

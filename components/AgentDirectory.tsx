@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { ChevronDown, ChevronUp, Check, Clock, Shield, Loader2, Copy, ExternalLink } from 'lucide-react'
 import { useAgentsContext } from './AgentsProvider'
 import { formatVouchedShort } from '@/lib/agents-data'
+import { getScoreTier, formatScore } from '@/lib/score-utils'
 
 type SortField = 'name' | 'score' | 'vouched'
 type SortDir = 'asc' | 'desc'
@@ -53,7 +54,7 @@ export default function AgentDirectory() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <div>
-            <h2 className="text-lg md:text-xl font-semibold text-foreground">Agent Reputation Scores</h2>
+            <h2 className="text-lg md:text-xl font-semibold text-foreground">Ethos Creator Scores</h2>
             <p className="text-muted-foreground text-sm">
               {loading ? 'Loading agents...' : `${filteredAgents.length} agents on Base`}
             </p>
@@ -105,7 +106,7 @@ export default function AgentDirectory() {
                 onClick={() => handleSort('score')}
                 className="col-span-2 flex items-center justify-center gap-1 hover:text-foreground transition-colors"
               >
-                Reputation <SortIcon field="score" />
+                Ethos Score <SortIcon field="score" />
               </button>
               <button 
                 onClick={() => handleSort('vouched')}
@@ -119,6 +120,7 @@ export default function AgentDirectory() {
             {/* Table Rows */}
             {filteredAgents.slice(0, 50).map((agent, i) => {
               const vouched = formatVouchedShort(agent.vouched)
+              const tier = getScoreTier(agent.score)
               return (
                 <Link href={`/agent/${agent.id}`} key={agent.id}>
                   <motion.div
@@ -163,15 +165,11 @@ export default function AgentDirectory() {
                     </div>
 
                     {/* Score - Mobile */}
-                    <div className="col-span-4 md:hidden flex items-center justify-end">
-                      <span className={`text-lg font-bold ${
-                        agent.score >= 90 ? 'text-green-400' :
-                        agent.score >= 80 ? 'text-yellow-400' :
-                        agent.score >= 70 ? 'text-orange-400' :
-                        'text-red-400'
-                      }`}>
-                        {agent.score}
+                    <div className="col-span-4 md:hidden flex flex-col items-end justify-center">
+                      <span className={`text-lg font-bold ${tier.color}`}>
+                        {formatScore(agent.score)}
                       </span>
+                      <span className={`text-xs ${tier.color}`}>{tier.label}</span>
                     </div>
 
                     {/* Category */}
@@ -183,14 +181,12 @@ export default function AgentDirectory() {
 
                     {/* Score */}
                     <div className="hidden md:flex col-span-2 items-center justify-center">
-                      <span className={`text-sm font-bold ${
-                        agent.score >= 90 ? 'text-green-400' :
-                        agent.score >= 80 ? 'text-yellow-400' :
-                        agent.score >= 70 ? 'text-orange-400' :
-                        'text-red-400'
-                      }`}>
-                        {agent.score}
-                      </span>
+                      <div className="text-center">
+                        <span className={`text-sm font-bold ${tier.color}`}>
+                          {formatScore(agent.score)}
+                        </span>
+                        <div className={`text-xs ${tier.color}`}>{tier.label}</div>
+                      </div>
                     </div>
 
                     {/* Vouched */}
@@ -225,6 +221,53 @@ export default function AgentDirectory() {
             )}
           </motion.div>
         )}
+
+        {/* Score Legend */}
+        <div className="mt-6 p-4 bg-card border border-border rounded-xl">
+          <h3 className="text-sm font-medium text-foreground mb-3">Ethos Creator Score Tiers</h3>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-2 text-xs">
+            <div className="flex items-center gap-2">
+              <span className="text-purple-400">🏆</span>
+              <span className="text-purple-400">2600-2800 Renowned</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-blue-400">👑</span>
+              <span className="text-blue-400">2400-2599 Revered</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-cyan-400">💎</span>
+              <span className="text-cyan-400">2200-2399 Distinguished</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-teal-400">🌟</span>
+              <span className="text-teal-400">2000-2199 Exemplary</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-emerald-400">⭐</span>
+              <span className="text-emerald-400">1800-1999 Reputable</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-green-400">✓</span>
+              <span className="text-green-400">1600-1799 Established</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-lime-500">👤</span>
+              <span className="text-lime-500">1400-1599 Known</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-yellow-500">😐</span>
+              <span className="text-yellow-500">1200-1399 Neutral</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-orange-500">❓</span>
+              <span className="text-orange-500">800-1199 Questionable</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-red-500">⚠️</span>
+              <span className="text-red-500">0-799 Untrust</span>
+            </div>
+          </div>
+        </div>
 
         {/* Submit CTA */}
         <div className="mt-6 text-center">

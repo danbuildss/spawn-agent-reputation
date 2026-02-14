@@ -7,23 +7,56 @@ import {
   TrendingUp, AlertTriangle
 } from 'lucide-react'
 import { Agent, ETH_PRICE } from '@/lib/agents-data'
+import { getScoreTier, formatScore, SCORE_TIERS } from '@/lib/score-utils'
 
 export default function AgentDetailClient({ agent }: { agent: Agent }) {
   const vouchedUSD = agent.vouched * ETH_PRICE
+  const tier = getScoreTier(agent.score)
+  
   const formatUSD = (val: number) => {
     if (val >= 1000000) return `$${(val / 1000000).toFixed(1)}M`
     if (val >= 1000) return `$${(val / 1000).toFixed(0)}K`
     return `$${val.toFixed(0)}`
   }
 
-  // Score breakdown based on agent score
+  // Score breakdown scaled to Ethos Creator Score (0-2800)
   const breakdown = {
-    contractAge: { score: Math.round(agent.score * 0.18), max: 20, label: 'Contract Age', detail: 'Base mainnet' },
-    audit: { score: agent.status === 'verified' ? 15 : 8, max: 15, label: 'Verification', detail: agent.status === 'verified' ? 'Verified' : 'Pending' },
-    liquidity: { score: Math.round(agent.score * 0.18), max: 20, label: 'Liquidity', detail: 'DEX pools' },
-    holders: { score: Math.round(agent.score * 0.14), max: 15, label: 'Holders', detail: 'Token holders' },
-    lpLocked: { score: Math.round(agent.score * 0.12), max: 15, label: 'LP Locked', detail: 'Lock status' },
-    creator: { score: Math.round(agent.score * 0.13), max: 15, label: 'Creator Rep', detail: 'Activity score' },
+    contractAge: { 
+      score: Math.round(agent.score * 0.18), 
+      max: 504, // 18% of 2800 
+      label: 'Contract Age', 
+      detail: 'Base mainnet' 
+    },
+    audit: { 
+      score: agent.status === 'verified' ? 420 : 224, 
+      max: 420, // 15% of 2800
+      label: 'Verification', 
+      detail: agent.status === 'verified' ? 'Verified' : 'Pending' 
+    },
+    liquidity: { 
+      score: Math.round(agent.score * 0.18), 
+      max: 504, 
+      label: 'Liquidity', 
+      detail: 'DEX pools' 
+    },
+    holders: { 
+      score: Math.round(agent.score * 0.14), 
+      max: 392, // 14% of 2800
+      label: 'Holders', 
+      detail: 'Token holders' 
+    },
+    lpLocked: { 
+      score: Math.round(agent.score * 0.12), 
+      max: 336, // 12% of 2800
+      label: 'LP Locked', 
+      detail: 'Lock status' 
+    },
+    creator: { 
+      score: Math.round(agent.score * 0.20), 
+      max: 560, // 20% of 2800 (Creator score is important in Ethos)
+      label: 'Creator Rep', 
+      detail: 'Ethos score' 
+    },
   }
 
   return (
@@ -78,20 +111,16 @@ export default function AgentDetailClient({ agent }: { agent: Agent }) {
               </div>
             </div>
             
-            {/* Trust Score */}
+            {/* Ethos Creator Score */}
             <div className="flex md:flex-col items-center md:items-end gap-4 md:gap-0 pt-2 md:pt-0 border-t md:border-0 border-white/10 mt-2 md:mt-0">
               <div className="text-center md:text-right">
-                <div className={`text-4xl md:text-5xl font-bold ${
-                  agent.score >= 90 ? 'text-green-400' :
-                  agent.score >= 80 ? 'text-yellow-400' :
-                  agent.score >= 70 ? 'text-orange-400' :
-                  'text-red-400'
-                }`}>
-                  {agent.score}
+                <div className={`text-4xl md:text-5xl font-bold ${tier.color}`}>
+                  {formatScore(agent.score)}
                 </div>
-                <div className="text-[10px] text-gray-500 uppercase tracking-wider">Trust Score</div>
+                <div className={`text-sm font-medium ${tier.color}`}>{tier.emoji} {tier.label}</div>
+                <div className="text-[10px] text-gray-500 uppercase tracking-wider mt-1">Ethos Score</div>
               </div>
-              <div className="text-center md:text-right mt-0 md:mt-2">
+              <div className="text-center md:text-right mt-0 md:mt-3">
                 <div className="text-sm text-white">{agent.vouched} ETH</div>
                 <div className="text-xs text-gray-500">{formatUSD(vouchedUSD)} vouched</div>
               </div>
@@ -113,7 +142,7 @@ export default function AgentDetailClient({ agent }: { agent: Agent }) {
                 <div key={key}>
                   <div className="flex items-center justify-between text-sm mb-1">
                     <span className="text-gray-400">{data.label}</span>
-                    <span className="text-white text-xs">{data.score}/{data.max}</span>
+                    <span className="text-white text-xs">{formatScore(data.score)}/{formatScore(data.max)}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="flex-1 h-1.5 bg-white/10 rounded-full overflow-hidden">
@@ -130,6 +159,16 @@ export default function AgentDetailClient({ agent }: { agent: Agent }) {
                   </div>
                 </div>
               ))}
+            </div>
+            
+            {/* Total Score */}
+            <div className="mt-4 pt-4 border-t border-white/10">
+              <div className="flex items-center justify-between">
+                <span className="text-gray-400 font-medium">Total Ethos Score</span>
+                <span className={`text-xl font-bold ${tier.color}`}>
+                  {formatScore(agent.score)} / 2,800
+                </span>
+              </div>
             </div>
           </motion.div>
           
@@ -159,6 +198,18 @@ export default function AgentDetailClient({ agent }: { agent: Agent }) {
                 <div className="flex justify-between">
                   <span className="text-gray-500">Reviews</span>
                   <span className="text-white">{agent.reviews}</span>
+                </div>
+              </div>
+            </div>
+            
+            {/* Ethos Tier */}
+            <div className={`${tier.bgColor} border border-white/10 rounded-xl p-4`}>
+              <h3 className="text-sm font-medium text-gray-300 mb-2">Ethos Tier</h3>
+              <div className="flex items-center gap-2">
+                <span className="text-2xl">{tier.emoji}</span>
+                <div>
+                  <div className={`font-bold ${tier.color}`}>{tier.label}</div>
+                  <div className="text-xs text-gray-400">{tier.min} - {tier.max} range</div>
                 </div>
               </div>
             </div>
