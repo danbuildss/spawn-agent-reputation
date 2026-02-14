@@ -13,6 +13,14 @@ if (!BOT_TOKEN) {
 
 const bot = new TelegramBot(BOT_TOKEN, { polling: true })
 
+// Set bot commands for autocomplete menu
+bot.setMyCommands([
+  { command: 'check', description: 'Check agent reputation by contract address' },
+  { command: 'top', description: 'Show top 10 verified agents' },
+  { command: 'stats', description: 'Platform statistics' },
+  { command: 'help', description: 'Show help & how scoring works' }
+])
+
 console.log('🤖 Spawn Bot started!')
 
 // Helper to format score with emoji

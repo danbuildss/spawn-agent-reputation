@@ -4,13 +4,84 @@ import { motion } from 'framer-motion'
 import Link from 'next/link'
 import { 
   ArrowLeft, Shield, ExternalLink, Twitter, FileCode, 
-  TrendingUp, AlertTriangle, Bot, Copy, Check
+  TrendingUp, AlertTriangle, Bot, Copy, Check, Loader2
 } from 'lucide-react'
 import { Agent, ETH_PRICE } from '@/lib/agents-data'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
-export default function AgentDetailClient({ agent }: { agent: Agent }) {
+interface Props {
+  agent: Agent | null
+  address: string
+}
+
+export default function AgentDetailClient({ agent: initialAgent, address }: Props) {
+  const [agent, setAgent] = useState<Agent | null>(initialAgent)
+  const [loading, setLoading] = useState(!initialAgent)
+  const [error, setError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
+
+  // Fetch data if agent not found in database
+  useEffect(() => {
+    if (!initialAgent && address) {
+      setLoading(true)
+      fetch(`/api/reputation?address=${address}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.error) {
+            setError(data.error)
+          } else {
+            // Convert API response to Agent-like object
+            setAgent({
+              id: address,
+              name: data.name || 'Unknown',
+              token: data.token || '',
+              handle: '',
+              description: data.recommendation || 'No description available',
+              score: data.score || 0,
+              vouched: 0,
+              reviews: 0,
+              category: 'Infrastructure',
+              status: data.grade === 'A' ? 'verified' : 'pending',
+              gradient: 'from-gray-500 to-gray-700',
+              logo: data.name?.slice(0, 2) || '??',
+              contract: address,
+              twitter: data.twitter,
+              breakdown: data.breakdown
+            } as unknown as Agent)
+          }
+          setLoading(false)
+        })
+        .catch(() => {
+          setError('Failed to fetch agent data')
+          setLoading(false)
+        })
+    }
+  }, [initialAgent, address])
+
+  if (loading) {
+    return (
+      <main className="min-h-screen bg-[#0a0a0a] pt-20 pb-12 px-4 md:px-6 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 text-accent animate-spin mx-auto mb-4" />
+          <p className="text-gray-400">Checking reputation...</p>
+        </div>
+      </main>
+    )
+  }
+
+  if (error || !agent) {
+    return (
+      <main className="min-h-screen bg-[#0a0a0a] pt-20 pb-12 px-4 md:px-6 flex items-center justify-center">
+        <div className="text-center">
+          <AlertTriangle className="w-8 h-8 text-red-400 mx-auto mb-4" />
+          <p className="text-white mb-2">Agent Not Found</p>
+          <p className="text-gray-400 text-sm mb-4">{error || 'Could not find data for this address'}</p>
+          <Link href="/" className="text-accent hover:underline">← Back to directory</Link>
+        </div>
+      </main>
+    )
+  }
+
   const vouchedUSD = agent.vouched * ETH_PRICE
   
   const formatUSD = (val: number) => {
@@ -42,14 +113,22 @@ export default function AgentDetailClient({ agent }: { agent: Agent }) {
     }
   }
 
-  // Score breakdown based on agent score
-  const breakdown = {
+  // Score breakdown - use API data if available, otherwise calculate from score
+  const apiBreakdown = (agent as any).breakdown
+  const breakdown = apiBreakdown ? {
+    contractAge: { score: apiBreakdown.contractAge?.score || 0, max: apiBreakdown.contractAge?.max || 20, label: 'Contract Age', detail: 'Base mainnet' },
+    liquidity: { score: apiBreakdown.liquidity?.score || 0, max: apiBreakdown.liquidity?.max || 25, label: 'Liquidity', detail: 'DEX pools' },
+    holders: { score: apiBreakdown.holders?.score || 0, max: apiBreakdown.holders?.max || 15, label: 'Holders', detail: 'Token holders' },
+    lpLocked: { score: apiBreakdown.lpLocked?.score || 0, max: apiBreakdown.lpLocked?.max || 20, label: 'LP Locked', detail: 'Lock status' },
+    volume: { score: apiBreakdown.volume?.score || 0, max: apiBreakdown.volume?.max || 10, label: 'Volume', detail: '24h activity' },
+    creator: { score: apiBreakdown.creatorHistory?.score || 0, max: apiBreakdown.creatorHistory?.max || 10, label: 'Creator Rep', detail: 'Ethos score' },
+  } : {
     contractAge: { score: Math.round(agent.score * 0.18), max: 20, label: 'Contract Age', detail: 'Base mainnet' },
-    audit: { score: agent.status === 'verified' ? 15 : 8, max: 15, label: 'Verification', detail: agent.status === 'verified' ? 'Verified' : 'Pending' },
-    liquidity: { score: Math.round(agent.score * 0.18), max: 20, label: 'Liquidity', detail: 'DEX pools' },
+    liquidity: { score: Math.round(agent.score * 0.22), max: 25, label: 'Liquidity', detail: 'DEX pools' },
     holders: { score: Math.round(agent.score * 0.14), max: 15, label: 'Holders', detail: 'Token holders' },
-    lpLocked: { score: Math.round(agent.score * 0.12), max: 15, label: 'LP Locked', detail: 'Lock status' },
-    creator: { score: Math.round(agent.score * 0.13), max: 15, label: 'Creator Rep', detail: 'Ethos score' },
+    lpLocked: { score: Math.round(agent.score * 0.18), max: 20, label: 'LP Locked', detail: 'Lock status' },
+    volume: { score: Math.round(agent.score * 0.09), max: 10, label: 'Volume', detail: '24h activity' },
+    creator: { score: Math.round(agent.score * 0.09), max: 10, label: 'Creator Rep', detail: 'Ethos score' },
   }
 
   // Build proper links
