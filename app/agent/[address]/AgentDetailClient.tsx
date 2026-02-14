@@ -4,12 +4,15 @@ import { motion } from 'framer-motion'
 import Link from 'next/link'
 import { 
   ArrowLeft, Shield, ExternalLink, Twitter, FileCode, 
-  TrendingUp, AlertTriangle
+  TrendingUp, AlertTriangle, Bot, Copy, Check
 } from 'lucide-react'
 import { Agent, ETH_PRICE } from '@/lib/agents-data'
+import { useState } from 'react'
 
 export default function AgentDetailClient({ agent }: { agent: Agent }) {
+  const [copied, setCopied] = useState(false)
   const vouchedUSD = agent.vouched * ETH_PRICE
+  
   const formatUSD = (val: number) => {
     if (val >= 1000000) return `$${(val / 1000000).toFixed(1)}M`
     if (val >= 1000) return `$${(val / 1000).toFixed(0)}K`
@@ -31,6 +34,14 @@ export default function AgentDetailClient({ agent }: { agent: Agent }) {
     return 'F'
   }
 
+  const copyContract = () => {
+    if (agent.contract) {
+      navigator.clipboard.writeText(agent.contract)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    }
+  }
+
   // Score breakdown based on agent score
   const breakdown = {
     contractAge: { score: Math.round(agent.score * 0.18), max: 20, label: 'Contract Age', detail: 'Base mainnet' },
@@ -40,6 +51,15 @@ export default function AgentDetailClient({ agent }: { agent: Agent }) {
     lpLocked: { score: Math.round(agent.score * 0.12), max: 15, label: 'LP Locked', detail: 'Lock status' },
     creator: { score: Math.round(agent.score * 0.13), max: 15, label: 'Creator Rep', detail: 'Ethos score' },
   }
+
+  // Build proper links
+  const basescanUrl = agent.contract 
+    ? `https://basescan.org/address/${agent.contract}`
+    : `https://basescan.org/search?q=${agent.token.replace('$', '')}`
+  
+  const dexscreenerUrl = agent.contract
+    ? `https://dexscreener.com/base/${agent.contract}`
+    : `https://dexscreener.com/base`
 
   return (
     <main className="min-h-screen bg-[#0a0a0a] pt-20 pb-12 px-4 md:px-6">
@@ -79,6 +99,22 @@ export default function AgentDetailClient({ agent }: { agent: Agent }) {
                   <span className="text-xs text-gray-600">via {agent.launchPlatform}</span>
                 )}
               </div>
+              
+              {/* Contract Address */}
+              {agent.contract && (
+                <div className="flex items-center gap-2 mb-3">
+                  <code className="text-xs text-gray-400 bg-white/5 px-2 py-1 rounded font-mono">
+                    {agent.contract.slice(0, 10)}...{agent.contract.slice(-8)}
+                  </code>
+                  <button 
+                    onClick={copyContract}
+                    className="text-gray-500 hover:text-white transition-colors"
+                    title="Copy contract address"
+                  >
+                    {copied ? <Check className="w-3 h-3 text-green-400" /> : <Copy className="w-3 h-3" />}
+                  </button>
+                </div>
+              )}
               
               <p className="text-gray-400 text-sm mb-3">{agent.description}</p>
               
@@ -184,11 +220,11 @@ export default function AgentDetailClient({ agent }: { agent: Agent }) {
                     <Twitter className="w-4 h-4" /> @{agent.twitter} <ExternalLink className="w-3 h-3 ml-auto" />
                   </a>
                 )}
-                <a href={`https://basescan.org/search?q=${agent.token.replace('$', '')}`} target="_blank" rel="noopener noreferrer"
+                <a href={basescanUrl} target="_blank" rel="noopener noreferrer"
                    className="flex items-center gap-2 text-sm text-gray-400 hover:text-white transition-colors">
                   <FileCode className="w-4 h-4" /> Basescan <ExternalLink className="w-3 h-3 ml-auto" />
                 </a>
-                <a href={`https://dexscreener.com/base`} target="_blank" rel="noopener noreferrer"
+                <a href={dexscreenerUrl} target="_blank" rel="noopener noreferrer"
                    className="flex items-center gap-2 text-sm text-gray-400 hover:text-white transition-colors">
                   <TrendingUp className="w-4 h-4" /> DexScreener <ExternalLink className="w-3 h-3 ml-auto" />
                 </a>
@@ -197,22 +233,39 @@ export default function AgentDetailClient({ agent }: { agent: Agent }) {
           </motion.div>
         </div>
         
-        {/* Action Buttons */}
+        {/* Agent Actions */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.4 }}
-          className="flex gap-3 mt-4"
+          transition={{ duration: 0.5, delay: 0.3 }}
+          className="mt-4 bg-white/5 border border-white/10 rounded-xl p-4"
         >
-          <button className="flex-1 py-2.5 px-4 bg-accent/20 border border-accent/30 rounded-lg text-accent text-sm font-medium hover:bg-accent/30 transition-colors">
-            Vouch
-          </button>
-          <button className="flex-1 py-2.5 px-4 bg-white/5 border border-white/10 rounded-lg text-white text-sm font-medium hover:bg-white/10 transition-colors">
-            Review
-          </button>
-          <button className="py-2.5 px-4 bg-white/5 border border-white/10 rounded-lg text-gray-400 hover:bg-white/10 transition-colors" title="Report">
-            <AlertTriangle className="w-4 h-4" />
-          </button>
+          <div className="flex items-center gap-2 mb-3">
+            <Bot className="w-4 h-4 text-accent" />
+            <h3 className="text-sm font-medium text-white">Agent Interactions</h3>
+          </div>
+          <p className="text-xs text-gray-400 mb-4">
+            Vouch and Review are agent-to-agent interactions. AI agents can programmatically vouch for other agents via our API, building trust networks between autonomous systems.
+          </p>
+          <div className="flex gap-3">
+            <a 
+              href={`https://spawn-agent-reputation.vercel.app/api/reputation?address=${agent.contract || ''}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-1 py-2.5 px-4 bg-accent/20 border border-accent/30 rounded-lg text-accent text-sm font-medium hover:bg-accent/30 transition-colors text-center"
+            >
+              Query via API
+            </a>
+            <button 
+              className="py-2.5 px-4 bg-white/5 border border-white/10 rounded-lg text-gray-400 hover:bg-white/10 transition-colors" 
+              title="Report Issue"
+            >
+              <AlertTriangle className="w-4 h-4" />
+            </button>
+          </div>
+          <p className="text-[10px] text-gray-600 mt-3">
+            API: GET /api/reputation?address={agent.contract ? `${agent.contract.slice(0, 10)}...` : 'CONTRACT'}
+          </p>
         </motion.div>
       </div>
     </main>

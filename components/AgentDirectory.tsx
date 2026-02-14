@@ -1,9 +1,9 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { ChevronDown, ChevronUp, Check, Clock, Shield, Loader2 } from 'lucide-react'
+import { ChevronDown, ChevronUp, Check, Clock, Shield, Loader2, Search } from 'lucide-react'
 import { useAgentsContext } from './AgentsProvider'
 import { formatVouchedShort } from '@/lib/agents-data'
 
@@ -19,6 +19,17 @@ export default function AgentDirectory() {
   const [sortField, setSortField] = useState<SortField>('score')
   const [sortDir, setSortDir] = useState<SortDir>('desc')
   const [filter, setFilter] = useState('All')
+  const [searchQuery, setSearchQuery] = useState('')
+
+  // Listen for search events from Hero
+  useEffect(() => {
+    const handleSearch = (e: CustomEvent) => {
+      setSearchQuery(e.detail)
+      setFilter('All') // Reset filter when searching
+    }
+    window.addEventListener('agent-search', handleSearch as EventListener)
+    return () => window.removeEventListener('agent-search', handleSearch as EventListener)
+  }, [])
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -30,7 +41,22 @@ export default function AgentDirectory() {
   }
 
   const filteredAgents = agents
-    .filter(a => filter === 'All' || a.category === filter)
+    .filter(a => {
+      // Category filter
+      if (filter !== 'All' && a.category !== filter) return false
+      // Search filter
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase()
+        return (
+          a.name.toLowerCase().includes(query) ||
+          a.token.toLowerCase().includes(query) ||
+          a.handle.toLowerCase().includes(query) ||
+          a.contract?.toLowerCase().includes(query) ||
+          a.description.toLowerCase().includes(query)
+        )
+      }
+      return true
+    })
     .sort((a, b) => {
       const mult = sortDir === 'asc' ? 1 : -1
       if (sortField === 'name') return mult * a.name.localeCompare(b.name)
@@ -73,22 +99,36 @@ export default function AgentDirectory() {
             </p>
           </div>
           
-          {/* Category Filter */}
-          <div className="flex items-center gap-1.5 flex-wrap">
-            {categories.map(cat => (
-              <button
-                key={cat}
-                onClick={() => setFilter(cat)}
-                className={`px-2.5 py-1 text-xs rounded-lg transition-colors ${
-                  filter === cat 
-                    ? 'bg-accent/20 text-accent border border-accent/30' 
-                    : 'bg-card text-muted-foreground border border-border hover:bg-accent/5'
-                }`}
-              >
-                {cat}
-              </button>
-            ))}
+          {/* Search in directory */}
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search..."
+                className="w-40 bg-card border border-border rounded-lg pl-9 pr-3 py-1.5 text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:border-accent/50"
+              />
+            </div>
           </div>
+        </div>
+        
+        {/* Category Filter */}
+        <div className="flex items-center gap-1.5 flex-wrap mb-4">
+          {categories.map(cat => (
+            <button
+              key={cat}
+              onClick={() => setFilter(cat)}
+              className={`px-2.5 py-1 text-xs rounded-lg transition-colors ${
+                filter === cat 
+                  ? 'bg-accent/20 text-accent border border-accent/30' 
+                  : 'bg-card text-muted-foreground border border-border hover:bg-accent/5'
+              }`}
+            >
+              {cat}
+            </button>
+          ))}
         </div>
 
         {/* Loading State */}
@@ -98,8 +138,21 @@ export default function AgentDirectory() {
           </div>
         )}
 
+        {/* No Results */}
+        {!loading && filteredAgents.length === 0 && (
+          <div className="text-center py-12 text-muted-foreground">
+            <p>No agents found matching "{searchQuery}"</p>
+            <button 
+              onClick={() => setSearchQuery('')}
+              className="mt-2 text-accent hover:underline text-sm"
+            >
+              Clear search
+            </button>
+          </div>
+        )}
+
         {/* Table */}
-        {!loading && (
+        {!loading && filteredAgents.length > 0 && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -259,14 +312,6 @@ export default function AgentDirectory() {
               <span className="text-muted-foreground">0-39 Very Low</span>
             </div>
           </div>
-        </div>
-
-        {/* Submit CTA */}
-        <div className="mt-6 text-center">
-          <p className="text-muted-foreground text-sm mb-3">Build your agent's reputation on Spawn</p>
-          <Link href="/submit" className="inline-block px-6 py-2 text-sm text-accent hover:text-foreground border border-accent/30 rounded-lg hover:bg-accent/20 transition-colors">
-            Submit Your Agent
-          </Link>
         </div>
       </div>
     </section>
