@@ -38,22 +38,22 @@ export default function Hero() {
   return (
     <section className="pt-24 pb-8 px-4 md:px-6 overflow-hidden">
       <div className="max-w-6xl mx-auto text-center">
-        {/* Logo with glow animation */}
+        {/* Small logo icon with glow */}
         <motion.div
           initial={{ opacity: 0, scale: 0.5 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.8, ease: "easeOut" }}
-          className="relative w-32 h-32 md:w-40 md:h-40 mx-auto mb-6"
+          className="relative w-12 h-12 md:w-16 md:h-16 mx-auto mb-6"
         >
-          {/* Animated glow behind logo */}
+          {/* Subtle glow */}
           <motion.div
             className="absolute inset-0 rounded-full"
             style={{
-              background: 'radial-gradient(circle, rgba(251,191,36,0.3) 0%, transparent 70%)',
+              background: 'radial-gradient(circle, rgba(251,191,36,0.4) 0%, transparent 70%)',
             }}
             animate={{
-              scale: [1, 1.2, 1],
-              opacity: [0.5, 0.8, 0.5],
+              scale: [1, 1.3, 1],
+              opacity: [0.4, 0.7, 0.4],
             }}
             transition={{
               duration: 3,
@@ -61,12 +61,12 @@ export default function Hero() {
               ease: "easeInOut"
             }}
           />
-          {/* Rotating rays effect */}
+          {/* Logo */}
           <motion.div
             className="absolute inset-0"
             animate={{ rotate: 360 }}
             transition={{
-              duration: 60,
+              duration: 120,
               repeat: Infinity,
               ease: "linear"
             }}
@@ -82,7 +82,7 @@ export default function Hero() {
         </motion.div>
 
         {/* Animated "spawn" text */}
-        <div className="flex items-center justify-center gap-1 mb-4">
+        <div className="flex items-center justify-center gap-0.5 mb-3">
           {spawnLetters.map((letter, i) => (
             <motion.span
               key={i}
@@ -90,7 +90,7 @@ export default function Hero() {
               variants={letterVariants}
               initial="hidden"
               animate="visible"
-              className="text-5xl md:text-7xl font-extralight tracking-[0.2em] text-white lowercase"
+              className="text-4xl md:text-6xl font-extralight tracking-[0.15em] text-white lowercase"
               style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}
             >
               {letter}
