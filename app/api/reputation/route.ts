@@ -1,12 +1,14 @@
 import { NextResponse } from 'next/server'
+import { agents, getAgentById } from '@/lib/agents-data'
 
 const DEXSCREENER_API = 'https://api.dexscreener.com'
 const BASESCAN_API = 'https://api.basescan.org/api'
 const BASESCAN_KEY = process.env.BASESCAN_API_KEY || ''
-const ETHOS_API = 'https://api.ethos.network/api/v2'
 
 interface ReputationScore {
   address: string
+  name?: string
+  token?: string
   score: number
   grade: 'A' | 'B' | 'C' | 'D' | 'F'
   breakdown: {
@@ -19,75 +21,36 @@ interface ReputationScore {
   }
   flags: string[]
   recommendation: string
+  source: 'database' | 'live'
   timestamp: string
+}
+
+// Check if address matches any known agent
+function findKnownAgent(address: string) {
+  const lowerAddress = address.toLowerCase()
+  return agents.find(a => a.contract?.toLowerCase() === lowerAddress)
 }
 
 // Get token info from DexScreener
 async function getDexScreenerData(address: string) {
   try {
-    const res = await fetch(`${DEXSCREENER_API}/latest/dex/tokens/${address}`)
+    const res = await fetch(`${DEXSCREENER_API}/latest/dex/tokens/${address}`, {
+      next: { revalidate: 60 } // Cache for 60 seconds
+    })
     if (!res.ok) return null
     const data = await res.json()
-    return data.pairs?.find((p: any) => p.chainId === 'base') || null
+    // Find Base chain pair, prefer highest liquidity
+    const basePairs = data.pairs?.filter((p: any) => p.chainId === 'base') || []
+    if (basePairs.length === 0) return null
+    return basePairs.sort((a: any, b: any) => (b.liquidity?.usd || 0) - (a.liquidity?.usd || 0))[0]
   } catch {
     return null
   }
 }
 
-// Get contract creation date from BaseScan
-async function getContractAge(address: string): Promise<number | null> {
-  try {
-    const res = await fetch(
-      `${BASESCAN_API}?module=contract&action=getcontractcreation&contractaddresses=${address}&apikey=${BASESCAN_KEY}`
-    )
-    if (!res.ok) return null
-    const data = await res.json()
-    if (data.result?.[0]?.txHash) {
-      // Get transaction timestamp
-      const txRes = await fetch(
-        `${BASESCAN_API}?module=proxy&action=eth_getTransactionByHash&txhash=${data.result[0].txHash}&apikey=${BASESCAN_KEY}`
-      )
-      if (txRes.ok) {
-        const txData = await txRes.json()
-        // For simplicity, estimate age from pair creation if available
-        return null
-      }
-    }
-    return null
-  } catch {
-    return null
-  }
-}
-
-// Get creator reputation from Ethos Network
-interface EthosScore {
-  score: number
-  level: string
-}
-
-async function getEthosScore(address: string): Promise<EthosScore | null> {
-  try {
-    const res = await fetch(
-      `${ETHOS_API}/score/address?address=${address}`,
-      {
-        headers: {
-          'X-Ethos-Client': 'spawn-reputation'
-        }
-      }
-    )
-    if (!res.ok) return null
-    const data = await res.json()
-    return {
-      score: data.score || 0,
-      level: data.level || 'unknown'
-    }
-  } catch {
-    return null
-  }
-}
-
-// Get contract deployer address from BaseScan
+// Get contract deployer from BaseScan
 async function getContractDeployer(address: string): Promise<string | null> {
+  if (!BASESCAN_KEY) return null
   try {
     const res = await fetch(
       `${BASESCAN_API}?module=contract&action=getcontractcreation&contractaddresses=${address}&apikey=${BASESCAN_KEY}`
@@ -100,16 +63,46 @@ async function getContractDeployer(address: string): Promise<string | null> {
   }
 }
 
-// Calculate reputation score
-async function calculateReputation(pair: any, contractAddress: string): Promise<ReputationScore> {
-  const address = pair?.baseToken?.address || 'unknown'
+// Build reputation from known agent data
+function buildFromKnownAgent(agent: typeof agents[0]): ReputationScore {
+  const grade = agent.score >= 85 ? 'A' : agent.score >= 70 ? 'B' : agent.score >= 55 ? 'C' : agent.score >= 40 ? 'D' : 'F'
+  
+  return {
+    address: agent.contract || agent.id,
+    name: agent.name,
+    token: agent.token,
+    score: agent.score,
+    grade,
+    breakdown: {
+      contractAge: { score: Math.round(agent.score * 0.20), max: 20, detail: 'Indexed agent' },
+      liquidity: { score: Math.round(agent.score * 0.25), max: 25, detail: `${agent.vouched} ETH vouched` },
+      holders: { score: Math.round(agent.score * 0.15), max: 15, detail: `${agent.reviews} reviews` },
+      lpLocked: { score: Math.round(agent.score * 0.20), max: 20, detail: agent.status === 'verified' ? 'Verified' : 'Pending' },
+      volume: { score: Math.round(agent.score * 0.10), max: 10, detail: agent.launchPlatform || 'Unknown' },
+      creatorHistory: { score: Math.round(agent.score * 0.10), max: 10, detail: agent.twitter ? `@${agent.twitter}` : 'Unknown' },
+    },
+    flags: agent.status !== 'verified' ? ['⚠️ Not yet verified on Spawn'] : [],
+    recommendation: agent.score >= 85 
+      ? '✅ High trust. Safe to interact with.'
+      : agent.score >= 70 
+        ? '✅ Good reputation. Proceed with normal caution.'
+        : agent.score >= 55
+          ? '⚠️ Moderate trust. Do additional research.'
+          : '⚠️ Low trust. Exercise caution.',
+    source: 'database',
+    timestamp: new Date().toISOString(),
+  }
+}
+
+// Calculate live reputation from DexScreener data
+async function calculateLiveReputation(pair: any, contractAddress: string): Promise<ReputationScore> {
   const breakdown = {
     contractAge: { score: 0, max: 20, detail: 'Unknown' },
     liquidity: { score: 0, max: 25, detail: '$0' },
     holders: { score: 0, max: 15, detail: '0' },
     lpLocked: { score: 0, max: 20, detail: 'Unknown' },
     volume: { score: 0, max: 10, detail: '$0' },
-    creatorHistory: { score: 0, max: 10, detail: 'Unknown' },
+    creatorHistory: { score: 3, max: 10, detail: 'Not indexed' },
   }
   const flags: string[] = []
 
@@ -118,16 +111,17 @@ async function calculateReputation(pair: any, contractAddress: string): Promise<
     const ageMs = Date.now() - pair.pairCreatedAt
     const ageDays = ageMs / (1000 * 60 * 60 * 24)
     if (ageDays >= 180) {
-      breakdown.contractAge = { score: 20, max: 20, detail: `${Math.floor(ageDays)} days (6+ months)` }
+      breakdown.contractAge = { score: 20, max: 20, detail: `${Math.floor(ageDays)} days` }
     } else if (ageDays >= 90) {
-      breakdown.contractAge = { score: 15, max: 20, detail: `${Math.floor(ageDays)} days (3+ months)` }
+      breakdown.contractAge = { score: 15, max: 20, detail: `${Math.floor(ageDays)} days` }
     } else if (ageDays >= 30) {
-      breakdown.contractAge = { score: 10, max: 20, detail: `${Math.floor(ageDays)} days (1+ month)` }
+      breakdown.contractAge = { score: 10, max: 20, detail: `${Math.floor(ageDays)} days` }
     } else if (ageDays >= 7) {
-      breakdown.contractAge = { score: 5, max: 20, detail: `${Math.floor(ageDays)} days (1+ week)` }
+      breakdown.contractAge = { score: 5, max: 20, detail: `${Math.floor(ageDays)} days` }
+      flags.push('⚠️ Less than 30 days old')
     } else {
-      breakdown.contractAge = { score: 2, max: 20, detail: `${Math.floor(ageDays)} days (very new)` }
-      flags.push('⚠️ Contract is less than 7 days old')
+      breakdown.contractAge = { score: 2, max: 20, detail: `${Math.floor(ageDays)} days` }
+      flags.push('🚨 Very new contract (<7 days)')
     }
   }
 
@@ -145,114 +139,78 @@ async function calculateReputation(pair: any, contractAddress: string): Promise<
     breakdown.liquidity = { score: 5, max: 25, detail: `$${(liquidity / 1000).toFixed(0)}K` }
   } else {
     breakdown.liquidity = { score: 0, max: 25, detail: `$${liquidity.toFixed(0)}` }
-    flags.push('⚠️ Low liquidity (under $10K)')
+    flags.push('🚨 Very low liquidity (<$10K)')
   }
 
-  // Holder estimate based on transactions (0-15 points)
+  // Holders estimate (0-15 points)
   const txns24h = (pair?.txns?.h24?.buys || 0) + (pair?.txns?.h24?.sells || 0)
-  const estimatedHolders = Math.max(txns24h * 5, 100) // Rough estimate
+  const estimatedHolders = Math.max(txns24h * 5, 50)
   if (estimatedHolders >= 5000) {
-    breakdown.holders = { score: 15, max: 15, detail: `~${(estimatedHolders / 1000).toFixed(1)}K+ holders` }
+    breakdown.holders = { score: 15, max: 15, detail: `~${(estimatedHolders / 1000).toFixed(1)}K+` }
   } else if (estimatedHolders >= 1000) {
-    breakdown.holders = { score: 12, max: 15, detail: `~${(estimatedHolders / 1000).toFixed(1)}K holders` }
+    breakdown.holders = { score: 12, max: 15, detail: `~${(estimatedHolders / 1000).toFixed(1)}K` }
   } else if (estimatedHolders >= 500) {
-    breakdown.holders = { score: 8, max: 15, detail: `~${estimatedHolders} holders` }
+    breakdown.holders = { score: 8, max: 15, detail: `~${estimatedHolders}` }
   } else if (estimatedHolders >= 100) {
-    breakdown.holders = { score: 4, max: 15, detail: `~${estimatedHolders} holders` }
+    breakdown.holders = { score: 4, max: 15, detail: `~${estimatedHolders}` }
   } else {
-    breakdown.holders = { score: 0, max: 15, detail: `<100 holders` }
-    flags.push('⚠️ Very few holders')
+    breakdown.holders = { score: 1, max: 15, detail: `<100` }
+    flags.push('⚠️ Low holder count')
   }
 
-  // LP Locked estimate (0-20 points) - Would need actual LP lock check
-  // For now, use liquidity stability as proxy
-  if (liquidity >= 500000) {
-    breakdown.lpLocked = { score: 15, max: 20, detail: 'High liquidity (likely stable)' }
-  } else if (liquidity >= 100000) {
-    breakdown.lpLocked = { score: 10, max: 20, detail: 'Moderate liquidity' }
+  // LP stability proxy (0-20 points)
+  const priceChange24h = Math.abs(pair?.priceChange?.h24 || 0)
+  if (liquidity >= 500000 && priceChange24h < 20) {
+    breakdown.lpLocked = { score: 18, max: 20, detail: 'Stable liquidity' }
+  } else if (liquidity >= 100000 && priceChange24h < 50) {
+    breakdown.lpLocked = { score: 12, max: 20, detail: 'Moderate stability' }
+  } else if (liquidity >= 10000) {
+    breakdown.lpLocked = { score: 6, max: 20, detail: 'Low stability' }
   } else {
-    breakdown.lpLocked = { score: 5, max: 20, detail: 'Unable to verify LP lock' }
-    flags.push('⚠️ LP lock status unknown')
+    breakdown.lpLocked = { score: 2, max: 20, detail: 'Unstable' }
+    flags.push('⚠️ Price volatility concern')
   }
 
   // Volume (0-10 points)
   const volume24h = pair?.volume?.h24 || 0
   if (volume24h >= 500000) {
-    breakdown.volume = { score: 10, max: 10, detail: `$${(volume24h / 1000000).toFixed(2)}M (24h)` }
+    breakdown.volume = { score: 10, max: 10, detail: `$${(volume24h / 1000000).toFixed(2)}M` }
   } else if (volume24h >= 100000) {
-    breakdown.volume = { score: 8, max: 10, detail: `$${(volume24h / 1000).toFixed(0)}K (24h)` }
+    breakdown.volume = { score: 8, max: 10, detail: `$${(volume24h / 1000).toFixed(0)}K` }
   } else if (volume24h >= 10000) {
-    breakdown.volume = { score: 5, max: 10, detail: `$${(volume24h / 1000).toFixed(0)}K (24h)` }
+    breakdown.volume = { score: 5, max: 10, detail: `$${(volume24h / 1000).toFixed(0)}K` }
   } else {
-    breakdown.volume = { score: 2, max: 10, detail: `$${volume24h.toFixed(0)} (24h)` }
+    breakdown.volume = { score: 2, max: 10, detail: `$${volume24h.toFixed(0)}` }
   }
 
-  // Creator History (0-10 points) - Using Ethos Network
-  try {
-    // Get deployer address
-    const deployer = await getContractDeployer(contractAddress)
-    if (deployer) {
-      const ethosScore = await getEthosScore(deployer)
-      if (ethosScore) {
-        // Ethos scores range from 0-2000+, normalize to 0-10
-        const normalizedScore = Math.min(10, Math.round(ethosScore.score / 200))
-        let detail = `Ethos: ${ethosScore.score} (${ethosScore.level})`
-        
-        if (ethosScore.score >= 1500) {
-          breakdown.creatorHistory = { score: 10, max: 10, detail: `${detail} - Excellent` }
-        } else if (ethosScore.score >= 1000) {
-          breakdown.creatorHistory = { score: 8, max: 10, detail: `${detail} - Good` }
-        } else if (ethosScore.score >= 500) {
-          breakdown.creatorHistory = { score: 5, max: 10, detail: `${detail} - Moderate` }
-        } else if (ethosScore.score > 0) {
-          breakdown.creatorHistory = { score: 3, max: 10, detail: `${detail} - Low` }
-          flags.push('⚠️ Creator has low Ethos reputation')
-        } else {
-          breakdown.creatorHistory = { score: 1, max: 10, detail: 'Ethos: No score' }
-          flags.push('⚠️ Creator has no Ethos reputation')
-        }
-      } else {
-        breakdown.creatorHistory = { score: 3, max: 10, detail: 'Creator not on Ethos' }
-      }
-    } else {
-      breakdown.creatorHistory = { score: 3, max: 10, detail: 'Deployer unknown' }
-    }
-  } catch {
-    breakdown.creatorHistory = { score: 3, max: 10, detail: 'Unable to check Ethos' }
-  }
+  // Not in our database
+  flags.push('ℹ️ Not indexed on Spawn - submit for verification')
 
-  // Calculate total score
+  // Calculate total
   const totalScore = Object.values(breakdown).reduce((sum, b) => sum + b.score, 0)
   
-  // Determine grade
-  let grade: 'A' | 'B' | 'C' | 'D' | 'F'
-  if (totalScore >= 85) grade = 'A'
-  else if (totalScore >= 70) grade = 'B'
-  else if (totalScore >= 55) grade = 'C'
-  else if (totalScore >= 40) grade = 'D'
-  else grade = 'F'
+  const grade = totalScore >= 85 ? 'A' : totalScore >= 70 ? 'B' : totalScore >= 55 ? 'C' : totalScore >= 40 ? 'D' : 'F'
 
-  // Generate recommendation
-  let recommendation: string
-  if (totalScore >= 85) {
-    recommendation = '✅ High trust. Safe to interact with.'
-  } else if (totalScore >= 70) {
-    recommendation = '✅ Good reputation. Proceed with normal caution.'
-  } else if (totalScore >= 55) {
-    recommendation = '⚠️ Moderate trust. Do additional research.'
-  } else if (totalScore >= 40) {
-    recommendation = '⚠️ Low trust. Exercise caution.'
-  } else {
-    recommendation = '🚨 Very low trust. High risk - avoid or investigate thoroughly.'
-  }
+  const recommendation = totalScore >= 85 
+    ? '✅ High trust. Safe to interact with.'
+    : totalScore >= 70 
+      ? '✅ Good reputation. Proceed with normal caution.'
+      : totalScore >= 55
+        ? '⚠️ Moderate trust. Do additional research.'
+        : totalScore >= 40
+          ? '⚠️ Low trust. Exercise caution.'
+          : '🚨 Very low trust. High risk.'
 
   return {
-    address,
+    address: pair?.baseToken?.address || contractAddress,
+    name: pair?.baseToken?.name,
+    token: pair?.baseToken?.symbol ? `$${pair.baseToken.symbol}` : undefined,
     score: totalScore,
     grade,
     breakdown,
     flags,
     recommendation,
+    source: 'live',
     timestamp: new Date().toISOString(),
   }
 }
@@ -263,7 +221,11 @@ export async function GET(request: Request) {
 
   if (!address) {
     return NextResponse.json(
-      { error: 'Missing address parameter. Usage: /api/reputation?address=0x...' },
+      { 
+        error: 'Missing address parameter',
+        usage: '/api/reputation?address=0x...',
+        example: '/api/reputation?address=0x0b3e328455c4059eeb9e3f84b5543f74e24e7e1b'
+      },
       { status: 400 }
     )
   }
@@ -277,7 +239,13 @@ export async function GET(request: Request) {
   }
 
   try {
-    // Get DexScreener data
+    // First check our database
+    const knownAgent = findKnownAgent(address)
+    if (knownAgent) {
+      return NextResponse.json(buildFromKnownAgent(knownAgent))
+    }
+
+    // Not in database, query DexScreener
     const pair = await getDexScreenerData(address)
     
     if (!pair) {
@@ -286,17 +254,21 @@ export async function GET(request: Request) {
         score: 0,
         grade: 'F',
         breakdown: null,
-        flags: ['❌ Token not found on DexScreener'],
-        recommendation: '🚨 Cannot verify. Token may not exist or has no liquidity.',
+        flags: [
+          '❌ Token not found on DexScreener',
+          '❌ No liquidity pool on Base',
+          'ℹ️ Submit to Spawn for manual review'
+        ],
+        recommendation: '🚨 Cannot verify. Token may not exist or has no liquidity on Base.',
+        source: 'none',
         timestamp: new Date().toISOString(),
-        error: 'Token not found on Base chain'
       })
     }
 
-    // Calculate reputation
-    const reputation = await calculateReputation(pair, address)
-
+    // Calculate live reputation
+    const reputation = await calculateLiveReputation(pair, address)
     return NextResponse.json(reputation)
+    
   } catch (error) {
     console.error('Reputation API error:', error)
     return NextResponse.json(
