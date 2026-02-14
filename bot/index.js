@@ -4,7 +4,7 @@ import dotenv from 'dotenv'
 dotenv.config()
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN
-const API_URL = process.env.API_URL || 'https://spawn-agent-reputation.vercel.app'
+const API_URL = process.env.API_URL || 'https://agentspawn.xyz'
 
 if (!BOT_TOKEN) {
   console.error('❌ Missing TELEGRAM_BOT_TOKEN in .env')
@@ -12,6 +12,37 @@ if (!BOT_TOKEN) {
 }
 
 const bot = new TelegramBot(BOT_TOKEN, { polling: true })
+
+// Rate limiting per user
+const userRateLimits = new Map()
+const RATE_LIMIT = 10 // requests per minute
+const RATE_WINDOW = 60000 // 1 minute
+
+function checkRateLimit(userId) {
+  const now = Date.now()
+  const userHistory = userRateLimits.get(userId) || []
+  const recent = userHistory.filter(t => now - t < RATE_WINDOW)
+  
+  if (recent.length >= RATE_LIMIT) {
+    return false
+  }
+  
+  userRateLimits.set(userId, [...recent, now])
+  return true
+}
+
+// Clean up rate limit map every 5 minutes
+setInterval(() => {
+  const now = Date.now()
+  for (const [userId, times] of userRateLimits.entries()) {
+    const recent = times.filter(t => now - t < RATE_WINDOW)
+    if (recent.length === 0) {
+      userRateLimits.delete(userId)
+    } else {
+      userRateLimits.set(userId, recent)
+    }
+  }
+}, 5 * 60 * 1000)
 
 // Set bot commands for autocomplete menu
 bot.setMyCommands([
@@ -90,6 +121,14 @@ Website: ${API_URL}
 // /check command
 bot.onText(/\/check(?:\s+(.+))?/, async (msg, match) => {
   const chatId = msg.chat.id
+  const userId = msg.from?.id || chatId
+  
+  // Rate limit check
+  if (!checkRateLimit(userId)) {
+    bot.sendMessage(chatId, '⏳ Rate limited. Please wait a minute before checking again.')
+    return
+  }
+  
   const address = match[1]?.trim()
 
   if (!address) {

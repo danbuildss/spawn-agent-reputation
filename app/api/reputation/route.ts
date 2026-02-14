@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { agents, getAgentById } from '@/lib/agents-data'
+import { rateLimit, getRateLimitHeaders } from '@/lib/rate-limit'
 
 const DEXSCREENER_API = 'https://api.dexscreener.com'
 const BASESCAN_API = 'https://api.basescan.org/api'
@@ -216,6 +217,19 @@ async function calculateLiveReputation(pair: any, contractAddress: string): Prom
 }
 
 export async function GET(request: Request) {
+  // Rate limiting: 30 requests per minute per IP
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0] || 
+             request.headers.get('x-real-ip') || 
+             'anonymous'
+  const rateLimitResult = rateLimit(`reputation:${ip}`, { windowMs: 60000, max: 30 })
+  
+  if (!rateLimitResult.success) {
+    return NextResponse.json(
+      { error: 'Rate limit exceeded. Try again later.' },
+      { status: 429, headers: getRateLimitHeaders(rateLimitResult) }
+    )
+  }
+
   const { searchParams } = new URL(request.url)
   const address = searchParams.get('address')
 
