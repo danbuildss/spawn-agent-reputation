@@ -3,17 +3,15 @@
 import { motion } from 'framer-motion'
 import { useState } from 'react'
 import Link from 'next/link'
-import { ChevronDown, ChevronUp, Check, Clock, Shield, Loader2, Copy, ExternalLink } from 'lucide-react'
+import { ChevronDown, ChevronUp, Check, Clock, Shield, Loader2 } from 'lucide-react'
 import { useAgentsContext } from './AgentsProvider'
 import { formatVouchedShort } from '@/lib/agents-data'
-import { getScoreTier, formatScore } from '@/lib/score-utils'
 
 type SortField = 'name' | 'score' | 'vouched'
 type SortDir = 'asc' | 'desc'
 
 const categories = ['All', 'Infrastructure', 'DeFi', 'Analytics', 'Social', 'Creative', 'Trading', 'Security']
 
-// Truncate address for display
 const truncateAddress = (addr: string) => addr ? `${addr.slice(0, 6)}...${addr.slice(-4)}` : ''
 
 export default function AgentDirectory() {
@@ -48,13 +46,28 @@ export default function AgentDirectory() {
       : <ChevronDown className="w-3 h-3 text-accent" />
   }
 
+  const getScoreColor = (score: number) => {
+    if (score >= 90) return 'text-green-400'
+    if (score >= 80) return 'text-yellow-400'
+    if (score >= 70) return 'text-orange-400'
+    return 'text-red-400'
+  }
+
+  const getGrade = (score: number) => {
+    if (score >= 85) return 'A'
+    if (score >= 70) return 'B'
+    if (score >= 55) return 'C'
+    if (score >= 40) return 'D'
+    return 'F'
+  }
+
   return (
     <section className="py-8 px-4 md:px-6" id="agents">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <div>
-            <h2 className="text-lg md:text-xl font-semibold text-foreground">Ethos Creator Scores</h2>
+            <h2 className="text-lg md:text-xl font-semibold text-foreground">Agent Reputation Scores</h2>
             <p className="text-muted-foreground text-sm">
               {loading ? 'Loading agents...' : `${filteredAgents.length} agents on Base`}
             </p>
@@ -106,7 +119,7 @@ export default function AgentDirectory() {
                 onClick={() => handleSort('score')}
                 className="col-span-2 flex items-center justify-center gap-1 hover:text-foreground transition-colors"
               >
-                Ethos Score <SortIcon field="score" />
+                Score <SortIcon field="score" />
               </button>
               <button 
                 onClick={() => handleSort('vouched')}
@@ -120,7 +133,6 @@ export default function AgentDirectory() {
             {/* Table Rows */}
             {filteredAgents.slice(0, 50).map((agent, i) => {
               const vouched = formatVouchedShort(agent.vouched)
-              const tier = getScoreTier(agent.score)
               return (
                 <Link href={`/agent/${agent.id}`} key={agent.id}>
                   <motion.div
@@ -131,7 +143,6 @@ export default function AgentDirectory() {
                   >
                     {/* Agent Name */}
                     <div className="col-span-8 md:col-span-4 flex items-center gap-2 md:gap-3">
-                      {/* Agent Logo/Image */}
                       {(agent as any).imageUrl ? (
                         <img 
                           src={(agent as any).imageUrl} 
@@ -165,11 +176,13 @@ export default function AgentDirectory() {
                     </div>
 
                     {/* Score - Mobile */}
-                    <div className="col-span-4 md:hidden flex flex-col items-end justify-center">
-                      <span className={`text-lg font-bold ${tier.color}`}>
-                        {formatScore(agent.score)}
+                    <div className="col-span-4 md:hidden flex items-center justify-end gap-1">
+                      <span className={`text-lg font-bold ${getScoreColor(agent.score)}`}>
+                        {agent.score}
                       </span>
-                      <span className={`text-xs ${tier.color}`}>{tier.label}</span>
+                      <span className={`text-xs ${getScoreColor(agent.score)}`}>
+                        ({getGrade(agent.score)})
+                      </span>
                     </div>
 
                     {/* Category */}
@@ -180,13 +193,13 @@ export default function AgentDirectory() {
                     </div>
 
                     {/* Score */}
-                    <div className="hidden md:flex col-span-2 items-center justify-center">
-                      <div className="text-center">
-                        <span className={`text-sm font-bold ${tier.color}`}>
-                          {formatScore(agent.score)}
-                        </span>
-                        <div className={`text-xs ${tier.color}`}>{tier.label}</div>
-                      </div>
+                    <div className="hidden md:flex col-span-2 items-center justify-center gap-1">
+                      <span className={`text-sm font-bold ${getScoreColor(agent.score)}`}>
+                        {agent.score}
+                      </span>
+                      <span className={`text-xs ${getScoreColor(agent.score)}`}>
+                        ({getGrade(agent.score)})
+                      </span>
                     </div>
 
                     {/* Vouched */}
@@ -222,49 +235,28 @@ export default function AgentDirectory() {
           </motion.div>
         )}
 
-        {/* Score Legend */}
+        {/* Grade Legend */}
         <div className="mt-6 p-4 bg-card border border-border rounded-xl">
-          <h3 className="text-sm font-medium text-foreground mb-3">Ethos Creator Score Tiers</h3>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-2 text-xs">
-            <div className="flex items-center gap-2">
-              <span className="text-purple-400">🏆</span>
-              <span className="text-purple-400">2600-2800 Renowned</span>
+          <div className="flex flex-wrap items-center justify-center gap-4 text-xs">
+            <div className="flex items-center gap-1.5">
+              <span className="text-green-400 font-bold">A</span>
+              <span className="text-muted-foreground">85-100 High Trust</span>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-blue-400">👑</span>
-              <span className="text-blue-400">2400-2599 Revered</span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-yellow-400 font-bold">B</span>
+              <span className="text-muted-foreground">70-84 Good</span>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-cyan-400">💎</span>
-              <span className="text-cyan-400">2200-2399 Distinguished</span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-orange-400 font-bold">C</span>
+              <span className="text-muted-foreground">55-69 Moderate</span>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-teal-400">🌟</span>
-              <span className="text-teal-400">2000-2199 Exemplary</span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-red-400 font-bold">D</span>
+              <span className="text-muted-foreground">40-54 Low</span>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-emerald-400">⭐</span>
-              <span className="text-emerald-400">1800-1999 Reputable</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-green-400">✓</span>
-              <span className="text-green-400">1600-1799 Established</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-lime-500">👤</span>
-              <span className="text-lime-500">1400-1599 Known</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-yellow-500">😐</span>
-              <span className="text-yellow-500">1200-1399 Neutral</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-orange-500">❓</span>
-              <span className="text-orange-500">800-1199 Questionable</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-red-500">⚠️</span>
-              <span className="text-red-500">0-799 Untrust</span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-red-500 font-bold">F</span>
+              <span className="text-muted-foreground">0-39 Very Low</span>
             </div>
           </div>
         </div>

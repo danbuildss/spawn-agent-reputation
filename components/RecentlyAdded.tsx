@@ -5,7 +5,6 @@ import Link from 'next/link'
 import { Sparkles, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useRef } from 'react'
 import { useAgentsContext } from './AgentsProvider'
-import { getScoreTier, formatScore } from '@/lib/score-utils'
 
 export default function RecentlyAdded() {
   const { recentAgents, loading } = useAgentsContext()
@@ -21,7 +20,7 @@ export default function RecentlyAdded() {
   }
 
   if (loading || recentAgents.length === 0) {
-    return null // Hide if no recent agents
+    return null
   }
 
   return (
@@ -47,44 +46,39 @@ export default function RecentlyAdded() {
           className="flex gap-3 overflow-x-auto scrollbar-hide pb-2 -mx-4 px-4 md:mx-0 md:px-0"
           style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
         >
-          {recentAgents.map((agent, i) => {
-            const tier = getScoreTier(agent.score)
-            return (
-              <motion.div
-                key={agent.id}
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.3, delay: i * 0.05 }}
-                className="flex-shrink-0 w-[180px]"
+          {recentAgents.map((agent, i) => (
+            <motion.div
+              key={agent.id}
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.3, delay: i * 0.05 }}
+              className="flex-shrink-0 w-[180px]"
+            >
+              <Link 
+                href={`/agent/${agent.id}`}
+                className="block p-3 bg-card border border-border rounded-xl hover:bg-accent/5 hover:border-accent/30 transition-all group"
               >
-                <Link 
-                  href={`/agent/${agent.id}`}
-                  className="block p-3 bg-card border border-border rounded-xl hover:bg-accent/5 hover:border-accent/30 transition-all group"
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-[10px] px-1.5 py-0.5 bg-green-500/20 text-green-400 rounded font-medium">NEW</span>
-                    <span className="text-[10px] text-muted-foreground">{agent.token}</span>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[10px] px-1.5 py-0.5 bg-green-500/20 text-green-400 rounded font-medium">NEW</span>
+                  <span className="text-[10px] text-muted-foreground">{agent.token}</span>
+                </div>
+                <div className="flex items-center gap-2 mb-1">
+                  <div className={`w-6 h-6 rounded bg-gradient-to-br ${agent.gradient} flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0`}>
+                    {agent.logo.slice(0, 1)}
                   </div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <div className={`w-6 h-6 rounded bg-gradient-to-br ${agent.gradient} flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0`}>
-                      {agent.logo.slice(0, 1)}
-                    </div>
-                    <span className="font-medium text-sm text-foreground group-hover:text-accent transition-colors truncate">
-                      {agent.name}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] text-muted-foreground">{agent.category}</span>
-                    <div className="text-right">
-                      <span className={`text-xs font-bold ${tier.color}`}>
-                        {formatScore(agent.score)}
-                      </span>
-                    </div>
-                  </div>
-                </Link>
-              </motion.div>
-            )
-          })}
+                  <span className="font-medium text-sm text-foreground group-hover:text-accent transition-colors truncate">
+                    {agent.name}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] text-muted-foreground">{agent.category}</span>
+                  <span className={`text-xs font-bold ${
+                    agent.score >= 80 ? 'text-green-400' : 'text-yellow-400'
+                  }`}>{agent.score}</span>
+                </div>
+              </Link>
+            </motion.div>
+          ))}
         </div>
       </div>
     </section>
