@@ -2,8 +2,8 @@
 
 import { motion } from 'framer-motion'
 import Link from 'next/link'
+import Image from 'next/image'
 import { Plus } from 'lucide-react'
-import ThemeToggle from './ThemeToggle'
 
 export default function Navigation() {
   return (
@@ -11,33 +11,47 @@ export default function Navigation() {
       initial={{ y: -20, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.5 }}
-      className="fixed top-0 left-0 right-0 z-50 px-4 md:px-6 py-3 bg-background/80 backdrop-blur-md border-b border-border"
+      className="fixed top-0 left-0 right-0 z-50 px-4 md:px-6 py-3 bg-black/80 backdrop-blur-md border-b border-white/5"
     >
       <div className="max-w-7xl mx-auto flex items-center justify-between">
         <div className="flex items-center gap-6 md:gap-8">
-          <Link href="/" className="text-lg font-semibold text-foreground">spawn</Link>
+          <Link href="/" className="flex items-center gap-2">
+            <div className="relative w-6 h-6">
+              <Image
+                src="/logo.png"
+                alt="Spawn"
+                fill
+                className="object-contain"
+              />
+            </div>
+            <span className="text-lg font-light tracking-wider text-white lowercase">spawn</span>
+          </Link>
           
           <div className="hidden md:flex items-center gap-6 text-sm">
-            <Link href="/#agents" className="text-muted-foreground hover:text-foreground transition-colors">
+            <Link href="/#agents" className="text-gray-400 hover:text-white transition-colors">
               Agents
             </Link>
-            <Link href="/featured" className="text-muted-foreground hover:text-foreground transition-colors">
-              Get Featured
+            <Link href="/featured" className="text-gray-400 hover:text-white transition-colors">
+              Featured
             </Link>
-            <Link href="#api" className="text-muted-foreground hover:text-foreground transition-colors">
-              API
-            </Link>
+            <a 
+              href="https://t.me/agentspawn_bot" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-gray-400 hover:text-white transition-colors"
+            >
+              Bot
+            </a>
           </div>
         </div>
         
-        <div className="flex items-center gap-2">
-          <ThemeToggle />
+        <div className="flex items-center gap-3">
           <Link 
             href="/submit"
-            className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-accent/20 text-accent border border-accent/30 rounded-lg hover:bg-accent/30 transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded-lg hover:bg-amber-500/20 hover:border-amber-500/30 transition-all duration-300"
           >
             <Plus className="w-4 h-4" />
-            <span className="hidden sm:inline">Submit Agent</span>
+            <span className="hidden sm:inline">Submit</span>
           </Link>
         </div>
       </div>
