@@ -27,7 +27,7 @@ const tiers = [
   },
   {
     name: 'Verified',
-    price: '$50',
+    price: '$20',
     period: 'one-time',
     description: 'Prove ownership + get listed',
     features: [
@@ -48,7 +48,7 @@ const tiers = [
   },
   {
     name: 'Featured',
-    price: '$200',
+    price: '$60',
     period: 'per month',
     description: 'Maximum visibility',
     features: [
