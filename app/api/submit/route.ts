@@ -51,15 +51,12 @@ export async function POST(request: Request) {
       )
     }
 
-    // Create submission
+    // Create submission (matches actual schema)
     const { data: submission, error } = await supabaseAdmin
       .from('submissions')
       .insert({
         contract_address: contractAddress.toLowerCase(),
         name: name || null,
-        description: description || null,
-        category: category || 'Infrastructure',
-        twitter: twitter || null,
         submitter_twitter: submitterTwitter || null,
         status: 'pending'
       })

@@ -34,14 +34,14 @@ export async function GET() {
       description: agent.description || '',
       score: agent.score,
       vouched: parseFloat(agent.vouched_eth) || 0,
-      reviews: agent.review_count || 0,
+      reviews: 0,
       category: agent.category || 'Infrastructure',
       status: agent.status,
       gradient: getGradient(agent.category),
       logo: agent.name?.slice(0, 2) || '??',
       contract: agent.contract_address,
       twitter: agent.twitter,
-      launchPlatform: agent.launch_platform
+      launchPlatform: 'virtuals'
     })) || []
 
     return NextResponse.json({
