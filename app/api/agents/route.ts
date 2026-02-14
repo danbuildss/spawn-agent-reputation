@@ -41,7 +41,11 @@ export async function GET() {
       logo: agent.name?.slice(0, 2) || '??',
       contract: agent.contract_address,
       twitter: agent.twitter,
-      launchPlatform: 'virtuals'
+      launchPlatform: 'virtuals',
+      // Use unavatar.io to get profile pics from Twitter handles
+      imageUrl: agent.twitter 
+        ? `https://unavatar.io/twitter/${agent.twitter}` 
+        : null
     })) || []
 
     return NextResponse.json({

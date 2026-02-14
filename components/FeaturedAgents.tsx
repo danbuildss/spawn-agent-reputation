@@ -79,7 +79,21 @@ export default function FeaturedAgents() {
                   className="block p-4 bg-gradient-to-br from-accent/10 via-purple-500/5 to-transparent border border-accent/20 rounded-xl hover:border-accent/40 transition-all group h-full"
                 >
                   <div className="flex items-start gap-3">
-                    <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${agent.gradient} flex items-center justify-center text-sm font-bold text-white flex-shrink-0`}>
+                    {(agent as any).imageUrl ? (
+                      <img 
+                        src={(agent as any).imageUrl}
+                        alt={agent.name}
+                        className="w-10 h-10 rounded-lg object-cover flex-shrink-0"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = 'none'
+                          const fallback = (e.target as HTMLImageElement).nextElementSibling as HTMLElement
+                          if (fallback) fallback.style.display = 'flex'
+                        }}
+                      />
+                    ) : null}
+                    <div 
+                      className={`w-10 h-10 rounded-lg bg-gradient-to-br ${agent.gradient} items-center justify-center text-sm font-bold text-white flex-shrink-0 ${(agent as any).imageUrl ? 'hidden' : 'flex'}`}
+                    >
                       {agent.logo.slice(0, 2)}
                     </div>
                     

@@ -63,9 +63,17 @@ export default function RecentlyAdded() {
                   <span className="text-[10px] text-muted-foreground">{agent.token}</span>
                 </div>
                 <div className="flex items-center gap-2 mb-1">
-                  <div className={`w-6 h-6 rounded bg-gradient-to-br ${agent.gradient} flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0`}>
-                    {agent.logo.slice(0, 1)}
-                  </div>
+                  {(agent as any).imageUrl ? (
+                    <img 
+                      src={(agent as any).imageUrl}
+                      alt={agent.name}
+                      className="w-6 h-6 rounded object-cover flex-shrink-0"
+                    />
+                  ) : (
+                    <div className={`w-6 h-6 rounded bg-gradient-to-br ${agent.gradient} flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0`}>
+                      {agent.logo.slice(0, 1)}
+                    </div>
+                  )}
                   <span className="font-medium text-sm text-foreground group-hover:text-accent transition-colors truncate">
                     {agent.name}
                   </span>
