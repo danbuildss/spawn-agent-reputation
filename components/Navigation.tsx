@@ -35,6 +35,14 @@ export default function Navigation() {
               Featured
             </Link>
             <a 
+              href="https://docs.agentspawn.xyz" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-gray-400 hover:text-white transition-colors"
+            >
+              Docs
+            </a>
+            <a 
               href="https://t.me/agentspawn_bot" 
               target="_blank" 
               rel="noopener noreferrer"

@@ -22,6 +22,14 @@ export default function Footer() {
             <Link href="/submit" className="hover:text-amber-400 transition-colors">Submit</Link>
             <Link href="/featured" className="hover:text-amber-400 transition-colors">Featured</Link>
             <a 
+              href="https://docs.agentspawn.xyz" 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="hover:text-amber-400 transition-colors"
+            >
+              Docs
+            </a>
+            <a 
               href="https://t.me/agentspawn_bot" 
               target="_blank" 
               rel="noopener noreferrer" 
