@@ -1,9 +1,20 @@
 import { NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
+import { supabase, isSupabaseConfigured } from '@/lib/supabase'
 
 export const revalidate = 60 // Revalidate every 60 seconds
 
 export async function GET() {
+  // If Supabase isn't configured, return empty array
+  if (!isSupabaseConfigured() || !supabase) {
+    return NextResponse.json({
+      agents: [],
+      totalAgents: 0,
+      verifiedCount: 0,
+      totalVouched: 0,
+      _note: 'Database not configured'
+    })
+  }
+
   try {
     // Fetch all agents from Supabase
     const { data: agents, error } = await supabase

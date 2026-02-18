@@ -1,8 +1,16 @@
 import { NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/lib/supabase'
+import { supabaseAdmin, isSupabaseConfigured } from '@/lib/supabase'
 import { rateLimit, getRateLimitHeaders } from '@/lib/rate-limit'
 
 export async function POST(request: Request) {
+  // Check if Supabase is configured
+  if (!isSupabaseConfigured() || !supabaseAdmin) {
+    return NextResponse.json(
+      { error: 'Submissions are temporarily disabled. Please try again later.' },
+      { status: 503 }
+    )
+  }
+
   // Rate limiting: 5 submissions per minute per IP (stricter)
   const ip = request.headers.get('x-forwarded-for')?.split(',')[0] || 
              request.headers.get('x-real-ip') || 
