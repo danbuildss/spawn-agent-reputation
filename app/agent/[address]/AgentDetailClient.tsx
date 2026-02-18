@@ -157,7 +157,21 @@ export default function AgentDetailClient({ agent: initialAgent, address }: Prop
         >
           <div className="flex flex-col md:flex-row md:items-start gap-4 md:gap-6">
             {/* Logo */}
-            <div className={`w-16 h-16 md:w-20 md:h-20 rounded-xl bg-gradient-to-br ${agent.gradient} flex items-center justify-center text-2xl md:text-3xl font-bold text-white flex-shrink-0`}>
+            {((agent as any).imageUrl || agent.twitter) ? (
+              <img 
+                src={(agent as any).imageUrl || `https://unavatar.io/x/${agent.twitter}`}
+                alt={agent.name}
+                className="w-16 h-16 md:w-20 md:h-20 rounded-xl object-cover flex-shrink-0 bg-card"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = 'none'
+                  const fallback = (e.target as HTMLImageElement).nextElementSibling as HTMLElement
+                  if (fallback) fallback.style.display = 'flex'
+                }}
+              />
+            ) : null}
+            <div 
+              className={`w-16 h-16 md:w-20 md:h-20 rounded-xl bg-gradient-to-br ${agent.gradient} items-center justify-center text-2xl md:text-3xl font-bold text-white flex-shrink-0 ${((agent as any).imageUrl || agent.twitter) ? 'hidden' : 'flex'}`}
+            >
               {agent.logo.slice(0, 2)}
             </div>
             

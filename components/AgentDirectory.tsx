@@ -394,20 +394,21 @@ export default function AgentDirectory() {
                   >
                     {/* Agent Name */}
                     <div className="col-span-8 md:col-span-4 flex items-center gap-2 md:gap-3">
-                      {(agent as any).imageUrl ? (
+                      {((agent as any).imageUrl || agent.twitter) ? (
                         <img 
-                          src={(agent as any).imageUrl} 
+                          src={(agent as any).imageUrl || `https://unavatar.io/x/${agent.twitter}`} 
                           alt={agent.name}
-                          className="w-8 h-8 rounded-lg flex-shrink-0 object-cover"
+                          className="w-8 h-8 rounded-lg flex-shrink-0 object-cover bg-card"
                           onError={(e) => {
-                            (e.target as HTMLImageElement).style.display = 'none'
+                            const target = e.target as HTMLImageElement
+                            target.style.display = 'none'
+                            target.nextElementSibling?.classList.remove('hidden')
                           }}
                         />
-                      ) : (
-                        <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${agent.gradient} flex items-center justify-center text-xs font-bold text-white flex-shrink-0`}>
-                          {agent.logo.slice(0, 2)}
-                        </div>
-                      )}
+                      ) : null}
+                      <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${agent.gradient} flex items-center justify-center text-xs font-bold text-white flex-shrink-0 ${((agent as any).imageUrl || agent.twitter) ? 'hidden' : ''}`}>
+                        {agent.logo.slice(0, 2)}
+                      </div>
                       <div className="min-w-0">
                         <div className="flex items-center gap-1.5">
                           <span className="text-foreground font-medium text-sm group-hover:text-accent transition-colors truncate">

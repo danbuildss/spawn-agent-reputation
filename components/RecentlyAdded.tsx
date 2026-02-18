@@ -63,11 +63,14 @@ export default function RecentlyAdded() {
                   <span className="text-[10px] text-muted-foreground">{agent.token}</span>
                 </div>
                 <div className="flex items-center gap-2 mb-1">
-                  {(agent as any).imageUrl ? (
+                  {((agent as any).imageUrl || agent.twitter) ? (
                     <img 
-                      src={(agent as any).imageUrl}
+                      src={(agent as any).imageUrl || `https://unavatar.io/x/${agent.twitter}`}
                       alt={agent.name}
-                      className="w-6 h-6 rounded object-cover flex-shrink-0"
+                      className="w-6 h-6 rounded object-cover flex-shrink-0 bg-card"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = 'none'
+                      }}
                     />
                   ) : (
                     <div className={`w-6 h-6 rounded bg-gradient-to-br ${agent.gradient} flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0`}>
