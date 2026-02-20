@@ -174,8 +174,9 @@ async function main() {
     }
   } else {
     // Dev fallback: use random wallet (warning in logs)
+    const { english } = await import('viem/accounts');
     const { generateMnemonic, mnemonicToAccount: toAccount } = await import('viem/accounts');
-    const devMnemonic = generateMnemonic();
+    const devMnemonic = generateMnemonic(english);
     account = toAccount(devMnemonic);
     console.warn(`⚠️ [TEE] No MNEMONIC — using random dev wallet: ${account.address}`);
   }
