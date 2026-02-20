@@ -1,15 +1,17 @@
-FROM node:18-alpine
+FROM --platform=linux/amd64 node:18
 
 WORKDIR /app
 
-COPY package.json ./
-RUN npm install
+COPY package.json package-lock.json* ./
+RUN npm install --production=false
 
-COPY src/ ./src/
 COPY tsconfig.json ./
+COPY src ./src
 
 RUN npm run build
 
-EXPOSE 8080
+# EigenCompute expects port 3001 by default
+EXPOSE 3001
 
+ENV NODE_ENV=production
 CMD ["npm", "start"]

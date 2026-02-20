@@ -162,18 +162,22 @@ function calculateReputation(pair: any, contractAddress: string): ReputationScor
 async function main() {
   const mnemonic = process.env.MNEMONIC;
 
-  if (!mnemonic) {
-    console.error('MNEMONIC environment variable is not set');
-    process.exit(1);
-  }
-
   // Derive the application's signing account from the provided mnemonic
+  // EigenCompute injects MNEMONIC via KMS at runtime
   let account;
-  try {
-    account = mnemonicToAccount(mnemonic);
-  } catch (error) {
-    console.error('Error deriving signing account:', error);
-    process.exit(1);
+  if (mnemonic) {
+    try {
+      account = mnemonicToAccount(mnemonic);
+    } catch (error) {
+      console.error('Error deriving signing account:', error);
+      process.exit(1);
+    }
+  } else {
+    // Dev fallback: use random wallet (warning in logs)
+    const { generateMnemonic, mnemonicToAccount: toAccount } = await import('viem/accounts');
+    const devMnemonic = generateMnemonic();
+    account = toAccount(devMnemonic);
+    console.warn(`⚠️ [TEE] No MNEMONIC — using random dev wallet: ${account.address}`);
   }
 
   const server = Fastify({ logger: true });
@@ -255,7 +259,7 @@ async function main() {
     };
   });
 
-  const port = Number(process.env.PORT ?? 8080);
+  const port = Number(process.env.APP_PORT || process.env.PORT || 3001);
   try {
     await server.listen({ port, host: '0.0.0.0' });
     console.log(`🛡️ Spawn Verifier running on port ${port}`);
