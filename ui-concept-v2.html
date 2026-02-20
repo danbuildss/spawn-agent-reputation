@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Spawn — Trust Layer for AI Agents</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0c;
+    --surface: #111114;
+    --surface2: #18181c;
+    --border: #2a2a30;
+    --text: #e8e8ec;
+    --text-dim: #8888a0;
+    --text-muted: #555568;
+    --accent: #0052FF;
+    --accent-glow: rgba(0, 82, 255, 0.15);
+    --green: #00ffa3;
+    --red: #ff4a4a;
+    --yellow: #ffd84a;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Noise overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  /* Grid background */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(var(--border) 1px, transparent 1px),
+      linear-gradient(90deg, var(--border) 1px, transparent 1px);
+    background-size: 80px 80px;
+    opacity: 0.06;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .glow-orb {
+    position: fixed;
+    width: 600px;
+    height: 600px;
+    border-radius: 50%;
+    filter: blur(120px);
+    opacity: 0.06;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .glow-orb-1 { background: var(--accent); top: -200px; right: -100px; }
+  .glow-orb-2 { background: var(--green); bottom: -200px; left: -100px; }
+
+  /* Header */
+  header {
+    position: relative;
+    z-index: 10;
+    padding: 32px 48px;
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-family: 'Instrument Serif', serif;
+    font-size: 28px;
+    font-weight: 400;
+  }
+
+  .logo span { color: var(--accent); }
+
+  nav {
+    display: flex;
+    gap: 32px;
+  }
+
+  nav a {
+    color: var(--text-dim);
+    text-decoration: none;
+    font-size: 13px;
+    letter-spacing: 0.5px;
+    transition: color 0.2s;
+  }
+
+  nav a:hover { color: var(--text); }
+
+  /* Hero */
+  .hero {
+    position: relative;
+    z-index: 10;
+    text-align: center;
+    padding: 60px 24px 40px;
+    max-width: 800px;
+    margin: 0 auto;
+  }
+
+  .hero h1 {
+    font-family: 'Instrument Serif', serif;
+    font-size: clamp(42px, 6vw, 72px);
+    font-weight: 400;
+    line-height: 1.1;
+    margin-bottom: 20px;
+  }
+
+  .hero h1 em {
+    font-style: italic;
+    color: var(--accent);
+  }
+
+  .hero p {
+    font-size: 14px;
+    color: var(--text-dim);
+    max-width: 500px;
+    margin: 0 auto 48px;
+    line-height: 1.7;
+    font-weight: 300;
+  }
+
+  /* Search */
+  .search-container {
+    max-width: 600px;
+    margin: 0 auto 60px;
+    position: relative;
+    z-index: 10;
+  }
+
+  .search-box {
+    display: flex;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    transition: all 0.3s;
+  }
+
+  .search-box:focus-within {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 4px var(--accent-glow);
+  }
+
+  .search-box input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    padding: 18px 20px;
+    font-size: 14px;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text);
+    outline: none;
+  }
+
+  .search-box input::placeholder { color: var(--text-muted); }
+
+  .search-box button {
+    background: var(--accent);
+    border: none;
+    padding: 18px 28px;
+    color: #fff;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  .search-box button:hover { background: #0040CC; }
+
+  /* Stats */
+  .stats-row {
+    display: flex;
+    justify-content: center;
+    gap: 64px;
+    margin-bottom: 60px;
+    padding: 24px 0;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    position: relative;
+    z-index: 10;
+  }
+
+  .stat {
+    text-align: center;
+  }
+
+  .stat-num {
+    font-family: 'Instrument Serif', serif;
+    font-size: 32px;
+    font-weight: 400;
+    color: var(--green);
+  }
+
+  .stat-label {
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-top: 4px;
+  }
+
+  /* Score Card */
+  .score-section {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 0 24px;
+    position: relative;
+    z-index: 10;
+  }
+
+  .score-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 40px;
+  }
+
+  .token-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 40px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .token-icon {
+    width: 52px;
+    height: 52px;
+    background: linear-gradient(135deg, var(--accent), #8B5CF6);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+  }
+
+  .token-info h2 {
+    font-family: 'Instrument Serif', serif;
+    font-size: 24px;
+    font-weight: 400;
+  }
+
+  .token-info p {
+    color: var(--text-muted);
+    font-size: 12px;
+    margin-top: 4px;
+  }
+
+  .verified-badge {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(0, 255, 163, 0.08);
+    border: 1px solid rgba(0, 255, 163, 0.2);
+    padding: 8px 14px;
+    border-radius: 100px;
+    font-size: 11px;
+    color: var(--green);
+    letter-spacing: 0.5px;
+  }
+
+  /* Score Display */
+  .score-display {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 60px;
+    align-items: center;
+    margin-bottom: 40px;
+  }
+
+  .score-ring {
+    position: relative;
+    width: 180px;
+    height: 180px;
+  }
+
+  .score-ring svg {
+    transform: rotate(-90deg);
+    width: 100%;
+    height: 100%;
+  }
+
+  .score-ring .bg {
+    fill: none;
+    stroke: var(--border);
+    stroke-width: 10;
+  }
+
+  .score-ring .progress {
+    fill: none;
+    stroke: url(#scoreGrad);
+    stroke-width: 10;
+    stroke-linecap: round;
+    stroke-dasharray: 502;
+    stroke-dashoffset: 75;
+  }
+
+  .score-value {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+  }
+
+  .score-value .number {
+    font-family: 'Instrument Serif', serif;
+    font-size: 52px;
+    font-weight: 400;
+    color: var(--green);
+  }
+
+  .score-value .grade {
+    font-size: 14px;
+    color: var(--green);
+    letter-spacing: 2px;
+  }
+
+  .score-meta h3 {
+    font-family: 'Instrument Serif', serif;
+    font-size: 20px;
+    font-weight: 400;
+    margin-bottom: 12px;
+  }
+
+  .score-meta .recommendation {
+    font-size: 13px;
+    color: var(--green);
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .score-meta .timestamp {
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+
+  /* Breakdown */
+  .breakdown-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+  }
+
+  .breakdown-item {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+  }
+
+  .breakdown-item .label {
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+  }
+
+  .breakdown-item .score {
+    font-family: 'Instrument Serif', serif;
+    font-size: 28px;
+    margin-bottom: 4px;
+  }
+
+  .breakdown-item .detail {
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-bottom: 12px;
+  }
+
+  .breakdown-item .bar {
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .breakdown-item .bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.6s ease-out;
+  }
+
+  .green .score { color: var(--green); }
+  .green .bar-fill { background: var(--green); }
+  .yellow .score { color: var(--yellow); }
+  .yellow .bar-fill { background: var(--yellow); }
+  .red .score { color: var(--red); }
+  .red .bar-fill { background: var(--red); }
+  .blue .score { color: var(--accent); }
+  .blue .bar-fill { background: var(--accent); }
+
+  /* Flags */
+  .flags {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 24px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+  }
+
+  .flag {
+    background: rgba(255, 216, 74, 0.08);
+    border: 1px solid rgba(255, 216, 74, 0.2);
+    color: var(--yellow);
+    padding: 8px 14px;
+    border-radius: 100px;
+    font-size: 11px;
+  }
+
+  .flag.danger {
+    background: rgba(255, 74, 74, 0.08);
+    border-color: rgba(255, 74, 74, 0.2);
+    color: var(--red);
+  }
+
+  /* Footer */
+  footer {
+    text-align: center;
+    padding: 60px 24px;
+    position: relative;
+    z-index: 10;
+  }
+
+  footer p {
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  footer a {
+    color: var(--accent);
+    text-decoration: none;
+  }
+
+  @media (max-width: 768px) {
+    .score-display { grid-template-columns: 1fr; justify-items: center; text-align: center; }
+    .breakdown-grid { grid-template-columns: 1fr; }
+    .stats-row { gap: 32px; flex-wrap: wrap; }
+    header { flex-direction: column; gap: 20px; }
+  }
+</style>
+</head>
+<body>
+  <div class="glow-orb glow-orb-1"></div>
+  <div class="glow-orb glow-orb-2"></div>
+
+  <header>
+    <div class="logo">🛡️ Spawn<span>.</span></div>
+    <nav>
+      <a href="#">Explore</a>
+      <a href="#">API</a>
+      <a href="#">Docs</a>
+      <a href="#">Bot</a>
+    </nav>
+  </header>
+
+  <section class="hero">
+    <h1>Trust Layer for <em>AI Agents</em></h1>
+    <p>Verify any agent's reputation before you interact. On-chain data, cryptographic proof. Built on Base.</p>
+  </section>
+
+  <div class="search-container">
+    <div class="search-box">
+      <input type="text" placeholder="Paste token address (0x...)" value="0x0b3e328455c4059eeb9e3f84b5543f74e24e7e1b">
+      <button>Check</button>
+    </div>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat">
+      <div class="stat-num">2,847</div>
+      <div class="stat-label">Agents Scored</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num">$42M</div>
+      <div class="stat-label">Liquidity Tracked</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num">99.2%</div>
+      <div class="stat-label">Uptime</div>
+    </div>
+  </div>
+
+  <section class="score-section">
+    <div class="score-card">
+      <div class="token-header">
+        <div class="token-icon">🤖</div>
+        <div class="token-info">
+          <h2>$VIRTUAL</h2>
+          <p>0x0b3e328455c4059eeb9e3f84b5543f74e24e7e1b</p>
+        </div>
+        <div class="verified-badge">
+          <span>🔐</span> TEE Verified
+        </div>
+      </div>
+
+      <div class="score-display">
+        <div class="score-ring">
+          <svg viewBox="0 0 180 180">
+            <defs>
+              <linearGradient id="scoreGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#00ffa3"/>
+                <stop offset="100%" stop-color="#0052FF"/>
+              </linearGradient>
+            </defs>
+            <circle class="bg" cx="90" cy="90" r="80"/>
+            <circle class="progress" cx="90" cy="90" r="80"/>
+          </svg>
+          <div class="score-value">
+            <div class="number">85</div>
+            <div class="grade">GRADE A</div>
+          </div>
+        </div>
+
+        <div class="score-meta">
+          <h3>Recommendation</h3>
+          <div class="recommendation">✅ High trust. Safe to interact.</div>
+          <div class="timestamp">Last updated: Feb 20, 2026 · 14:30 UTC</div>
+        </div>
+      </div>
+
+      <div class="breakdown-grid">
+        <div class="breakdown-item green">
+          <div class="label">Contract Age</div>
+          <div class="score">18/20</div>
+          <div class="detail">245 days</div>
+          <div class="bar"><div class="bar-fill" style="width: 90%"></div></div>
+        </div>
+        <div class="breakdown-item green">
+          <div class="label">Liquidity</div>
+          <div class="score">23/25</div>
+          <div class="detail">$4.2M</div>
+          <div class="bar"><div class="bar-fill" style="width: 92%"></div></div>
+        </div>
+        <div class="breakdown-item green">
+          <div class="label">Holders</div>
+          <div class="score">12/15</div>
+          <div class="detail">~8.5K</div>
+          <div class="bar"><div class="bar-fill" style="width: 80%"></div></div>
+        </div>
+        <div class="breakdown-item green">
+          <div class="label">LP Stability</div>
+          <div class="score">16/20</div>
+          <div class="detail">Stable</div>
+          <div class="bar"><div class="bar-fill" style="width: 80%"></div></div>
+        </div>
+        <div class="breakdown-item yellow">
+          <div class="label">Volume 24h</div>
+          <div class="score">8/10</div>
+          <div class="detail">$892K</div>
+          <div class="bar"><div class="bar-fill" style="width: 80%"></div></div>
+        </div>
+        <div class="breakdown-item blue">
+          <div class="label">Creator Rep</div>
+          <div class="score">8/10</div>
+          <div class="detail">Verified</div>
+          <div class="bar"><div class="bar-fill" style="width: 80%"></div></div>
+        </div>
+      </div>
+
+      <div class="flags">
+        <div class="flag">⚠️ High volatility (24h)</div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <p>Built on <a href="https://base.org">Base</a> · Powered by <a href="https://eigencloud.xyz">EigenCloud</a></p>
+  </footer>
+</body>
+</html>
