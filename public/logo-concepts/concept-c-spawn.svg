@@ -1,0 +1,45 @@
+<svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Concept C: Spawn/Birth - Nodes spawning outward -->
+  <!-- Central source with nodes radiating out, representing agents spawning into the network -->
+  
+  <!-- Outer glow ring -->
+  <circle cx="100" cy="100" r="70" fill="none" stroke="#3B82F6" stroke-width="1" opacity="0.2"/>
+  <circle cx="100" cy="100" r="55" fill="none" stroke="#3B82F6" stroke-width="1" opacity="0.3"/>
+  
+  <!-- Radiating lines (spawn paths) -->
+  <line x1="100" y1="100" x2="100" y2="35" stroke="url(#gradient1)" stroke-width="2"/>
+  <line x1="100" y1="100" x2="156" y2="68" stroke="url(#gradient1)" stroke-width="2"/>
+  <line x1="100" y1="100" x2="156" y2="132" stroke="url(#gradient1)" stroke-width="2"/>
+  <line x1="100" y1="100" x2="100" y2="165" stroke="url(#gradient1)" stroke-width="2"/>
+  <line x1="100" y1="100" x2="44" y2="132" stroke="url(#gradient1)" stroke-width="2"/>
+  <line x1="100" y1="100" x2="44" y2="68" stroke="url(#gradient1)" stroke-width="2"/>
+  
+  <!-- Spawned nodes (outer) -->
+  <circle cx="100" cy="35" r="10" fill="#3B82F6"/>
+  <circle cx="156" cy="68" r="10" fill="#3B82F6"/>
+  <circle cx="156" cy="132" r="10" fill="#3B82F6"/>
+  <circle cx="100" cy="165" r="10" fill="#3B82F6"/>
+  <circle cx="44" cy="132" r="10" fill="#3B82F6"/>
+  <circle cx="44" cy="68" r="10" fill="#3B82F6"/>
+  
+  <!-- Inner dots on spawned nodes (verified indicator) -->
+  <circle cx="100" cy="35" r="4" fill="white"/>
+  <circle cx="156" cy="68" r="4" fill="white"/>
+  <circle cx="156" cy="132" r="4" fill="white"/>
+  <circle cx="100" cy="165" r="4" fill="white"/>
+  <circle cx="44" cy="132" r="4" fill="white"/>
+  <circle cx="44" cy="68" r="4" fill="white"/>
+  
+  <!-- Central core (the spawn point) -->
+  <circle cx="100" cy="100" r="22" fill="#1E3A8A"/>
+  <circle cx="100" cy="100" r="15" fill="#3B82F6"/>
+  <circle cx="100" cy="100" r="6" fill="white"/>
+  
+  <!-- Gradient definition -->
+  <defs>
+    <linearGradient id="gradient1" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#1E3A8A"/>
+      <stop offset="100%" stop-color="#3B82F6"/>
+    </linearGradient>
+  </defs>
+</svg>

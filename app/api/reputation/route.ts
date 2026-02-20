@@ -97,91 +97,174 @@ function buildFromKnownAgent(agent: typeof agents[0]): ReputationScore {
 
 // Calculate live reputation from DexScreener data
 async function calculateLiveReputation(pair: any, contractAddress: string): Promise<ReputationScore> {
+  /*
+   * SPAWN SCORING ALGORITHM v2.0
+   * 
+   * Total: 100 points
+   * - Contract Age:    15 pts (longevity = battle-tested)
+   * - Liquidity:       25 pts (depth = can't rug easily)
+   * - Holders:         15 pts (distribution = healthier)
+   * - LP Stability:    15 pts (locked/stable = committed)
+   * - Volume:          15 pts (active market = real usage)
+   * - Creator/Social:  15 pts (reputation signals)
+   */
+  
   const breakdown = {
-    contractAge: { score: 0, max: 20, detail: 'Unknown' },
+    contractAge: { score: 0, max: 15, detail: 'Unknown' },
     liquidity: { score: 0, max: 25, detail: '$0' },
     holders: { score: 0, max: 15, detail: '0' },
-    lpLocked: { score: 0, max: 20, detail: 'Unknown' },
-    volume: { score: 0, max: 10, detail: '$0' },
-    creatorHistory: { score: 3, max: 10, detail: 'Not indexed' },
+    lpLocked: { score: 0, max: 15, detail: 'Unknown' },
+    volume: { score: 0, max: 15, detail: '$0' },
+    creatorHistory: { score: 0, max: 15, detail: 'Unknown' },
   }
   const flags: string[] = []
 
-  // Contract Age (0-20 points)
+  // === CONTRACT AGE (0-15 points) ===
+  // Older contracts have survived longer, more battle-tested
   if (pair?.pairCreatedAt) {
     const ageMs = Date.now() - pair.pairCreatedAt
     const ageDays = ageMs / (1000 * 60 * 60 * 24)
-    if (ageDays >= 180) {
-      breakdown.contractAge = { score: 20, max: 20, detail: `${Math.floor(ageDays)} days` }
+    if (ageDays >= 365) {
+      breakdown.contractAge = { score: 15, max: 15, detail: `${Math.floor(ageDays)} days (1yr+)` }
+    } else if (ageDays >= 180) {
+      breakdown.contractAge = { score: 13, max: 15, detail: `${Math.floor(ageDays)} days` }
     } else if (ageDays >= 90) {
-      breakdown.contractAge = { score: 15, max: 20, detail: `${Math.floor(ageDays)} days` }
+      breakdown.contractAge = { score: 10, max: 15, detail: `${Math.floor(ageDays)} days` }
     } else if (ageDays >= 30) {
-      breakdown.contractAge = { score: 10, max: 20, detail: `${Math.floor(ageDays)} days` }
-    } else if (ageDays >= 7) {
-      breakdown.contractAge = { score: 5, max: 20, detail: `${Math.floor(ageDays)} days` }
+      breakdown.contractAge = { score: 7, max: 15, detail: `${Math.floor(ageDays)} days` }
+    } else if (ageDays >= 14) {
+      breakdown.contractAge = { score: 4, max: 15, detail: `${Math.floor(ageDays)} days` }
       flags.push('⚠️ Less than 30 days old')
+    } else if (ageDays >= 3) {
+      breakdown.contractAge = { score: 2, max: 15, detail: `${Math.floor(ageDays)} days` }
+      flags.push('🚨 Very new (<14 days)')
     } else {
-      breakdown.contractAge = { score: 2, max: 20, detail: `${Math.floor(ageDays)} days` }
-      flags.push('🚨 Very new contract (<7 days)')
+      breakdown.contractAge = { score: 0, max: 15, detail: `${Math.floor(ageDays)} days` }
+      flags.push('🚨 Extremely new (<3 days) - HIGH RISK')
     }
   }
 
-  // Liquidity (0-25 points)
+  // === LIQUIDITY (0-25 points) ===
+  // Higher liquidity = harder to rug, more stable trading
   const liquidity = pair?.liquidity?.usd || 0
-  if (liquidity >= 1000000) {
-    breakdown.liquidity = { score: 25, max: 25, detail: `$${(liquidity / 1000000).toFixed(2)}M` }
+  if (liquidity >= 5000000) {
+    breakdown.liquidity = { score: 25, max: 25, detail: `$${(liquidity / 1000000).toFixed(1)}M` }
+  } else if (liquidity >= 1000000) {
+    breakdown.liquidity = { score: 22, max: 25, detail: `$${(liquidity / 1000000).toFixed(2)}M` }
   } else if (liquidity >= 500000) {
-    breakdown.liquidity = { score: 20, max: 25, detail: `$${(liquidity / 1000).toFixed(0)}K` }
+    breakdown.liquidity = { score: 18, max: 25, detail: `$${(liquidity / 1000).toFixed(0)}K` }
   } else if (liquidity >= 100000) {
-    breakdown.liquidity = { score: 15, max: 25, detail: `$${(liquidity / 1000).toFixed(0)}K` }
+    breakdown.liquidity = { score: 14, max: 25, detail: `$${(liquidity / 1000).toFixed(0)}K` }
   } else if (liquidity >= 50000) {
     breakdown.liquidity = { score: 10, max: 25, detail: `$${(liquidity / 1000).toFixed(0)}K` }
+  } else if (liquidity >= 25000) {
+    breakdown.liquidity = { score: 6, max: 25, detail: `$${(liquidity / 1000).toFixed(0)}K` }
   } else if (liquidity >= 10000) {
-    breakdown.liquidity = { score: 5, max: 25, detail: `$${(liquidity / 1000).toFixed(0)}K` }
+    breakdown.liquidity = { score: 3, max: 25, detail: `$${(liquidity / 1000).toFixed(0)}K` }
+    flags.push('⚠️ Low liquidity (<$25K)')
   } else {
     breakdown.liquidity = { score: 0, max: 25, detail: `$${liquidity.toFixed(0)}` }
-    flags.push('🚨 Very low liquidity (<$10K)')
+    flags.push('🚨 Very low liquidity (<$10K) - RUG RISK')
   }
 
-  // Holders estimate (0-15 points)
+  // === HOLDERS (0-15 points) ===
+  // More distributed = healthier, less manipulation
   const txns24h = (pair?.txns?.h24?.buys || 0) + (pair?.txns?.h24?.sells || 0)
-  const estimatedHolders = Math.max(txns24h * 5, 50)
-  if (estimatedHolders >= 5000) {
-    breakdown.holders = { score: 15, max: 15, detail: `~${(estimatedHolders / 1000).toFixed(1)}K+` }
+  const txns6h = (pair?.txns?.h6?.buys || 0) + (pair?.txns?.h6?.sells || 0)
+  // Estimate holders based on transaction patterns
+  const estimatedHolders = Math.max(txns24h * 3, txns6h * 10, 20)
+  if (estimatedHolders >= 10000) {
+    breakdown.holders = { score: 15, max: 15, detail: `~${(estimatedHolders / 1000).toFixed(0)}K+` }
+  } else if (estimatedHolders >= 5000) {
+    breakdown.holders = { score: 13, max: 15, detail: `~${(estimatedHolders / 1000).toFixed(1)}K` }
   } else if (estimatedHolders >= 1000) {
-    breakdown.holders = { score: 12, max: 15, detail: `~${(estimatedHolders / 1000).toFixed(1)}K` }
+    breakdown.holders = { score: 10, max: 15, detail: `~${(estimatedHolders / 1000).toFixed(1)}K` }
   } else if (estimatedHolders >= 500) {
-    breakdown.holders = { score: 8, max: 15, detail: `~${estimatedHolders}` }
+    breakdown.holders = { score: 7, max: 15, detail: `~${estimatedHolders}` }
   } else if (estimatedHolders >= 100) {
     breakdown.holders = { score: 4, max: 15, detail: `~${estimatedHolders}` }
   } else {
     breakdown.holders = { score: 1, max: 15, detail: `<100` }
-    flags.push('⚠️ Low holder count')
+    flags.push('⚠️ Low holder count - concentration risk')
   }
 
-  // LP stability proxy (0-20 points)
+  // === LP STABILITY (0-15 points) ===
+  // Stable price + good liquidity = locked or committed LP
   const priceChange24h = Math.abs(pair?.priceChange?.h24 || 0)
-  if (liquidity >= 500000 && priceChange24h < 20) {
-    breakdown.lpLocked = { score: 18, max: 20, detail: 'Stable liquidity' }
-  } else if (liquidity >= 100000 && priceChange24h < 50) {
-    breakdown.lpLocked = { score: 12, max: 20, detail: 'Moderate stability' }
-  } else if (liquidity >= 10000) {
-    breakdown.lpLocked = { score: 6, max: 20, detail: 'Low stability' }
+  const priceChange6h = Math.abs(pair?.priceChange?.h6 || 0)
+  const avgVolatility = (priceChange24h + priceChange6h * 2) / 3
+  
+  if (liquidity >= 500000 && avgVolatility < 15) {
+    breakdown.lpLocked = { score: 15, max: 15, detail: 'Very stable' }
+  } else if (liquidity >= 200000 && avgVolatility < 25) {
+    breakdown.lpLocked = { score: 12, max: 15, detail: 'Stable' }
+  } else if (liquidity >= 100000 && avgVolatility < 40) {
+    breakdown.lpLocked = { score: 9, max: 15, detail: 'Moderate' }
+  } else if (liquidity >= 50000 && avgVolatility < 60) {
+    breakdown.lpLocked = { score: 6, max: 15, detail: 'Some volatility' }
+  } else if (avgVolatility < 80) {
+    breakdown.lpLocked = { score: 3, max: 15, detail: 'Volatile' }
+    flags.push('⚠️ High price volatility')
   } else {
-    breakdown.lpLocked = { score: 2, max: 20, detail: 'Unstable' }
-    flags.push('⚠️ Price volatility concern')
+    breakdown.lpLocked = { score: 0, max: 15, detail: 'Very volatile' }
+    flags.push('🚨 Extreme volatility - possible manipulation')
   }
 
-  // Volume (0-10 points)
+  // === VOLUME (0-15 points) ===
+  // Active trading = real usage, not dead project
   const volume24h = pair?.volume?.h24 || 0
-  if (volume24h >= 500000) {
-    breakdown.volume = { score: 10, max: 10, detail: `$${(volume24h / 1000000).toFixed(2)}M` }
+  const volumeToLiqRatio = liquidity > 0 ? volume24h / liquidity : 0
+  
+  if (volume24h >= 1000000) {
+    breakdown.volume = { score: 15, max: 15, detail: `$${(volume24h / 1000000).toFixed(1)}M` }
+  } else if (volume24h >= 500000) {
+    breakdown.volume = { score: 13, max: 15, detail: `$${(volume24h / 1000).toFixed(0)}K` }
   } else if (volume24h >= 100000) {
-    breakdown.volume = { score: 8, max: 10, detail: `$${(volume24h / 1000).toFixed(0)}K` }
+    breakdown.volume = { score: 10, max: 15, detail: `$${(volume24h / 1000).toFixed(0)}K` }
+  } else if (volume24h >= 50000) {
+    breakdown.volume = { score: 7, max: 15, detail: `$${(volume24h / 1000).toFixed(0)}K` }
   } else if (volume24h >= 10000) {
-    breakdown.volume = { score: 5, max: 10, detail: `$${(volume24h / 1000).toFixed(0)}K` }
+    breakdown.volume = { score: 4, max: 15, detail: `$${(volume24h / 1000).toFixed(0)}K` }
   } else {
-    breakdown.volume = { score: 2, max: 10, detail: `$${volume24h.toFixed(0)}` }
+    breakdown.volume = { score: 1, max: 15, detail: `$${volume24h.toFixed(0)}` }
+    flags.push('⚠️ Low trading volume')
+  }
+  
+  // Flag suspicious volume patterns
+  if (volumeToLiqRatio > 10) {
+    flags.push('⚠️ Unusually high volume/liquidity ratio - possible wash trading')
+  }
+
+  // === CREATOR/SOCIAL (0-15 points) ===
+  // Base points for having any data, bonus for verified info
+  let socialScore = 2 // Base: token exists and has data
+  
+  // Has website
+  if (pair?.info?.websites?.length > 0) {
+    socialScore += 3
+  }
+  
+  // Has socials (Twitter, Telegram, etc)
+  if (pair?.info?.socials?.length > 0) {
+    socialScore += 3
+    const hasTwitter = pair.info.socials.some((s: any) => s.type === 'twitter')
+    const hasTelegram = pair.info.socials.some((s: any) => s.type === 'telegram')
+    if (hasTwitter) socialScore += 2
+    if (hasTelegram) socialScore += 1
+  }
+  
+  // Has description/image (more effort = more legitimate)
+  if (pair?.info?.imageUrl) socialScore += 2
+  if (pair?.baseToken?.name && pair.baseToken.name.length > 3) socialScore += 2
+  
+  breakdown.creatorHistory = { 
+    score: Math.min(socialScore, 15), 
+    max: 15, 
+    detail: socialScore >= 10 ? 'Good presence' : socialScore >= 5 ? 'Some presence' : 'Limited info'
+  }
+  
+  if (socialScore < 5) {
+    flags.push('⚠️ Limited project information')
   }
 
   // Not in our database

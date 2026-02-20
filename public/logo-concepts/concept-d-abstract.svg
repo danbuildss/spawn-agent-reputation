@@ -1,0 +1,30 @@
+<svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Concept D: Abstract S Mark with Nodes -->
+  <!-- Minimal, modern S-shape formed by connected nodes -->
+  
+  <!-- S-curve path -->
+  <path d="M130 50 C170 50 170 90 130 100 C90 110 90 150 130 150" 
+        stroke="#3B82F6" stroke-width="3" fill="none" stroke-linecap="round"/>
+  
+  <!-- Mirror S-curve (creates depth) -->
+  <path d="M70 50 C30 50 30 90 70 100 C110 110 110 150 70 150" 
+        stroke="#3B82F6" stroke-width="3" fill="none" stroke-linecap="round" opacity="0.4"/>
+  
+  <!-- Connection between curves -->
+  <line x1="70" y1="100" x2="130" y2="100" stroke="#3B82F6" stroke-width="2" opacity="0.5"/>
+  
+  <!-- Nodes at key points -->
+  <circle cx="130" cy="50" r="8" fill="#3B82F6"/>
+  <circle cx="130" cy="100" r="10" fill="#3B82F6"/>
+  <circle cx="130" cy="150" r="8" fill="#3B82F6"/>
+  
+  <circle cx="70" cy="50" r="6" fill="#3B82F6" opacity="0.5"/>
+  <circle cx="70" cy="100" r="8" fill="#3B82F6" opacity="0.6"/>
+  <circle cx="70" cy="150" r="6" fill="#3B82F6" opacity="0.5"/>
+  
+  <!-- Central emphasis -->
+  <circle cx="100" cy="100" r="5" fill="#60A5FA"/>
+  
+  <!-- Inner dots (verified) -->
+  <circle cx="130" cy="100" r="4" fill="white"/>
+</svg>
