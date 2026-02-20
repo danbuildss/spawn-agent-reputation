@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Spawn - Trust Layer for AI Agents</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0a0a0a;
+      color: #fff;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+    
+    /* Gradient background */
+    .bg-gradient {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: radial-gradient(ellipse at 50% 0%, rgba(0, 82, 255, 0.15) 0%, transparent 50%),
+                  radial-gradient(ellipse at 80% 50%, rgba(139, 92, 246, 0.1) 0%, transparent 40%);
+      pointer-events: none;
+    }
+    
+    /* Header */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px 40px;
+      position: relative;
+      z-index: 10;
+    }
+    
+    .logo {
+      font-size: 24px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .logo span { color: #0052FF; }
+    
+    .nav {
+      display: flex;
+      gap: 32px;
+    }
+    
+    .nav a {
+      color: #888;
+      text-decoration: none;
+      font-size: 14px;
+      transition: color 0.2s;
+    }
+    
+    .nav a:hover { color: #fff; }
+    
+    /* Hero */
+    .hero {
+      text-align: center;
+      padding: 60px 20px 40px;
+      position: relative;
+      z-index: 10;
+    }
+    
+    .hero h1 {
+      font-size: 48px;
+      font-weight: 700;
+      margin-bottom: 16px;
+      background: linear-gradient(to right, #fff, #888);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    .hero p {
+      color: #666;
+      font-size: 18px;
+      max-width: 500px;
+      margin: 0 auto 40px;
+    }
+    
+    /* Search */
+    .search-container {
+      max-width: 600px;
+      margin: 0 auto 60px;
+      position: relative;
+      z-index: 10;
+    }
+    
+    .search-box {
+      display: flex;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 16px;
+      overflow: hidden;
+      transition: all 0.3s;
+    }
+    
+    .search-box:focus-within {
+      border-color: #0052FF;
+      box-shadow: 0 0 0 4px rgba(0, 82, 255, 0.1);
+    }
+    
+    .search-box input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      padding: 20px 24px;
+      font-size: 16px;
+      color: #fff;
+      outline: none;
+    }
+    
+    .search-box input::placeholder { color: #444; }
+    
+    .search-box button {
+      background: #0052FF;
+      border: none;
+      padding: 20px 32px;
+      color: #fff;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    
+    .search-box button:hover { background: #0040CC; }
+    
+    /* Score Card */
+    .score-section {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 0 20px;
+      position: relative;
+      z-index: 10;
+    }
+    
+    .score-card {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 24px;
+      padding: 40px;
+      backdrop-filter: blur(10px);
+    }
+    
+    .token-header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+    
+    .token-icon {
+      width: 56px;
+      height: 56px;
+      background: linear-gradient(135deg, #0052FF, #8B5CF6);
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+    }
+    
+    .token-info h2 {
+      font-size: 24px;
+      font-weight: 600;
+    }
+    
+    .token-info p {
+      color: #666;
+      font-size: 14px;
+      font-family: monospace;
+    }
+    
+    /* Score Display */
+    .score-display {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 60px;
+      margin: 40px 0;
+    }
+    
+    .score-circle {
+      position: relative;
+      width: 200px;
+      height: 200px;
+    }
+    
+    .score-circle svg {
+      transform: rotate(-90deg);
+    }
+    
+    .score-circle .bg {
+      fill: none;
+      stroke: rgba(255,255,255,0.1);
+      stroke-width: 12;
+    }
+    
+    .score-circle .progress {
+      fill: none;
+      stroke: url(#scoreGradient);
+      stroke-width: 12;
+      stroke-linecap: round;
+      stroke-dasharray: 565;
+      stroke-dashoffset: 85;
+      transition: stroke-dashoffset 1s ease-out;
+    }
+    
+    .score-value {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+    }
+    
+    .score-value .number {
+      font-size: 56px;
+      font-weight: 700;
+      color: #22C55E;
+    }
+    
+    .score-value .grade {
+      font-size: 20px;
+      color: #22C55E;
+      font-weight: 600;
+    }
+    
+    .score-meta {
+      text-align: left;
+    }
+    
+    .score-meta .label {
+      color: #666;
+      font-size: 14px;
+      margin-bottom: 8px;
+    }
+    
+    .score-meta .recommendation {
+      font-size: 18px;
+      color: #22C55E;
+      margin-bottom: 16px;
+    }
+    
+    .verified-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(34, 197, 94, 0.1);
+      border: 1px solid rgba(34, 197, 94, 0.3);
+      padding: 8px 16px;
+      border-radius: 100px;
+      font-size: 14px;
+      color: #22C55E;
+    }
+    
+    /* Breakdown Grid */
+    .breakdown-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-top: 32px;
+    }
+    
+    .breakdown-item {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 16px;
+      padding: 20px;
+    }
+    
+    .breakdown-item .label {
+      color: #666;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+    }
+    
+    .breakdown-item .value {
+      font-size: 24px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    
+    .breakdown-item .detail {
+      color: #888;
+      font-size: 13px;
+    }
+    
+    .breakdown-item .bar {
+      height: 4px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 2px;
+      margin-top: 12px;
+      overflow: hidden;
+    }
+    
+    .breakdown-item .bar-fill {
+      height: 100%;
+      border-radius: 2px;
+      transition: width 0.5s ease-out;
+    }
+    
+    .green { color: #22C55E; }
+    .green .bar-fill { background: #22C55E; }
+    .yellow { color: #EAB308; }
+    .yellow .bar-fill { background: #EAB308; }
+    .blue { color: #0052FF; }
+    .blue .bar-fill { background: #0052FF; }
+    
+    /* Flags */
+    .flags {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 24px;
+    }
+    
+    .flag {
+      background: rgba(234, 179, 8, 0.1);
+      border: 1px solid rgba(234, 179, 8, 0.3);
+      color: #EAB308;
+      padding: 8px 16px;
+      border-radius: 100px;
+      font-size: 13px;
+    }
+    
+    .flag.danger {
+      background: rgba(239, 68, 68, 0.1);
+      border-color: rgba(239, 68, 68, 0.3);
+      color: #EF4444;
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-gradient"></div>
+  
+  <header class="header">
+    <div class="logo">
+      🛡️ Spawn<span>.</span>
+    </div>
+    <nav class="nav">
+      <a href="#">Explore</a>
+      <a href="#">API</a>
+      <a href="#">Docs</a>
+      <a href="#">Bot</a>
+    </nav>
+  </header>
+  
+  <section class="hero">
+    <h1>Trust Layer for AI Agents</h1>
+    <p>Verify any AI agent's reputation before you interact. On-chain data, cryptographic proof.</p>
+  </section>
+  
+  <div class="search-container">
+    <div class="search-box">
+      <input type="text" placeholder="Paste token address (0x...)" value="0x0b3e328455c4059eeb9e3f84b5543f74e24e7e1b">
+      <button>Check Score</button>
+    </div>
+  </div>
+  
+  <section class="score-section">
+    <div class="score-card">
+      <div class="token-header">
+        <div class="token-icon">🤖</div>
+        <div class="token-info">
+          <h2>$VIRTUAL</h2>
+          <p>0x0b3e...7e1b</p>
+        </div>
+      </div>
+      
+      <div class="score-display">
+        <div class="score-circle">
+          <svg width="200" height="200" viewBox="0 0 200 200">
+            <defs>
+              <linearGradient id="scoreGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#22C55E"/>
+                <stop offset="100%" stop-color="#0052FF"/>
+              </linearGradient>
+            </defs>
+            <circle class="bg" cx="100" cy="100" r="90"/>
+            <circle class="progress" cx="100" cy="100" r="90"/>
+          </svg>
+          <div class="score-value">
+            <div class="number">85</div>
+            <div class="grade">Grade A</div>
+          </div>
+        </div>
+        
+        <div class="score-meta">
+          <div class="label">Recommendation</div>
+          <div class="recommendation">✅ High trust. Safe to interact.</div>
+          <div class="verified-badge">
+            <span>🔐</span>
+            <span>TEE Verified</span>
+          </div>
+        </div>
+      </div>
+      
+      <div class="breakdown-grid">
+        <div class="breakdown-item green">
+          <div class="label">Contract Age</div>
+          <div class="value">18/20</div>
+          <div class="detail">245 days old</div>
+          <div class="bar"><div class="bar-fill" style="width: 90%"></div></div>
+        </div>
+        <div class="breakdown-item green">
+          <div class="label">Liquidity</div>
+          <div class="value">23/25</div>
+          <div class="detail">$4.2M</div>
+          <div class="bar"><div class="bar-fill" style="width: 92%"></div></div>
+        </div>
+        <div class="breakdown-item green">
+          <div class="label">Holders</div>
+          <div class="value">12/15</div>
+          <div class="detail">~8.5K holders</div>
+          <div class="bar"><div class="bar-fill" style="width: 80%"></div></div>
+        </div>
+        <div class="breakdown-item green">
+          <div class="label">LP Stability</div>
+          <div class="value">16/20</div>
+          <div class="detail">Stable liquidity</div>
+          <div class="bar"><div class="bar-fill" style="width: 80%"></div></div>
+        </div>
+        <div class="breakdown-item yellow">
+          <div class="label">Volume (24h)</div>
+          <div class="value">8/10</div>
+          <div class="detail">$892K</div>
+          <div class="bar"><div class="bar-fill" style="width: 80%"></div></div>
+        </div>
+        <div class="breakdown-item blue">
+          <div class="label">Creator Rep</div>
+          <div class="value">8/10</div>
+          <div class="detail">Verified history</div>
+          <div class="bar"><div class="bar-fill" style="width: 80%"></div></div>
+        </div>
+      </div>
+      
+      <div class="flags">
+        <div class="flag">⚠️ High price volatility (24h)</div>
+      </div>
+    </div>
+  </section>
+  
+  <div style="height: 100px;"></div>
+</body>
+</html>
