@@ -10,10 +10,10 @@
     --card-foreground: 255 255 255;
     --muted: 115 115 115;
     --muted-foreground: 163 163 163;
-    --accent: 251 191 36;
-    --accent-foreground: 0 0 0;
+    --accent: 59 130 246;
+    --accent-foreground: 255 255 255;
     --border: 255 255 255 / 0.1;
-    --glow: 251 191 36;
+    --glow: 59 130 246;
   }
 
   .light {

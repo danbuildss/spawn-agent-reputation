@@ -56,7 +56,7 @@ export default function Navigation() {
         <div className="flex items-center gap-3">
           <Link 
             href="/submit"
-            className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded-lg hover:bg-amber-500/20 hover:border-amber-500/30 transition-all duration-300"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-lg hover:bg-blue-500/20 hover:border-blue-500/30 transition-all duration-300"
           >
             <Plus className="w-4 h-4" />
             <span className="hidden sm:inline">Submit</span>

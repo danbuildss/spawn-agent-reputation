@@ -49,7 +49,7 @@ export default function Hero() {
           <motion.div
             className="absolute inset-0 rounded-full"
             style={{
-              background: 'radial-gradient(circle, rgba(251,191,36,0.4) 0%, transparent 70%)',
+              background: 'radial-gradient(circle, rgba(59,130,246,0.4) 0%, transparent 70%)',
             }}
             animate={{
               scale: [1, 1.3, 1],
@@ -103,7 +103,7 @@ export default function Hero() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 1.5, duration: 0.8 }}
-          className="text-amber-400/80 text-sm md:text-base font-light tracking-[0.3em] uppercase mb-8"
+          className="text-blue-400/80 text-sm md:text-base font-light tracking-[0.3em] uppercase mb-8"
         >
           Trust Layer for AI Agents
         </motion.p>
@@ -113,7 +113,7 @@ export default function Hero() {
           initial={{ scaleX: 0 }}
           animate={{ scaleX: 1 }}
           transition={{ delay: 1.8, duration: 0.8, ease: "easeOut" }}
-          className="w-24 h-px bg-gradient-to-r from-transparent via-amber-500 to-transparent mx-auto mb-8"
+          className="w-24 h-px bg-gradient-to-r from-transparent via-blue-500 to-transparent mx-auto mb-8"
         />
 
         {/* Description */}
@@ -134,7 +134,7 @@ export default function Hero() {
           className="max-w-md mx-auto"
         >
           <form onSubmit={handleSearch} className="relative group">
-            <div className="absolute -inset-0.5 bg-gradient-to-r from-amber-500/20 to-orange-500/20 rounded-xl blur opacity-0 group-hover:opacity-100 transition duration-500" />
+            <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-500/20 to-blue-600/20 rounded-xl blur opacity-0 group-hover:opacity-100 transition duration-500" />
             <div className="relative">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
               <input
@@ -142,7 +142,7 @@ export default function Hero() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search agents or paste contract..."
-                className="w-full bg-white/5 border border-white/10 rounded-xl pl-11 pr-4 py-3 text-white text-sm placeholder-gray-500 focus:outline-none focus:border-amber-500/50 transition-all duration-300"
+                className="w-full bg-white/5 border border-white/10 rounded-xl pl-11 pr-4 py-3 text-white text-sm placeholder-gray-500 focus:outline-none focus:border-blue-500/50 transition-all duration-300"
               />
             </div>
           </form>
@@ -164,7 +164,7 @@ export default function Hero() {
             <span>Live Scoring</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-amber-500">◆</span>
+            <span className="text-blue-500">◆</span>
             <span>Base Network</span>
           </div>
         </motion.div>
