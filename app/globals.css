@@ -2,30 +2,21 @@
 @tailwind components;
 @tailwind utilities;
 
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Instrument+Serif:ital@0;1&display=swap');
+
 @layer base {
   :root {
-    --background: 10 10 10;
-    --foreground: 255 255 255;
-    --card: 255 255 255 / 0.05;
-    --card-foreground: 255 255 255;
-    --muted: 115 115 115;
-    --muted-foreground: 163 163 163;
+    --bg: 10 10 12;
+    --surface: 17 17 20;
+    --surface2: 24 24 28;
+    --border: 42 42 48;
+    --border-glow: 58 58 68;
+    --text: 232 232 236;
+    --text-dim: 136 136 160;
+    --text-muted: 85 85 104;
     --accent: 59 130 246;
-    --accent-foreground: 255 255 255;
-    --border: 255 255 255 / 0.1;
-    --glow: 59 130 246;
-  }
-
-  .light {
-    --background: 250 250 250;
-    --foreground: 10 10 10;
-    --card: 0 0 0 / 0.03;
-    --card-foreground: 10 10 10;
-    --muted: 163 163 163;
-    --muted-foreground: 115 115 115;
-    --accent: 0 82 255;
-    --accent-foreground: 255 255 255;
-    --border: 0 0 0 / 0.1;
+    --accent-dim: 37 99 235;
+    --accent-glow: 59 130 246;
   }
 
   * {
@@ -33,42 +24,112 @@
   }
 
   html {
-    background: rgb(var(--background));
+    background: rgb(var(--bg));
   }
 
   body {
-    background: rgb(var(--background));
-    color: rgb(var(--foreground));
+    background: rgb(var(--bg));
+    color: rgb(var(--text));
+    font-family: 'JetBrains Mono', monospace;
     @apply antialiased;
+  }
+
+  /* Noise overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  /* Grid lines background */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgb(var(--border)) 1px, transparent 1px),
+      linear-gradient(90deg, rgb(var(--border)) 1px, transparent 1px);
+    background-size: 80px 80px;
+    opacity: 0.06;
+    pointer-events: none;
+    z-index: 0;
   }
 }
 
 @layer components {
+  .font-serif {
+    font-family: 'Instrument Serif', serif;
+  }
+
+  .font-mono {
+    font-family: 'JetBrains Mono', monospace;
+  }
+
   .glass-card {
-    background: rgb(var(--card));
-    @apply backdrop-blur-sm border border-border rounded-xl;
+    background: rgb(var(--surface));
+    @apply backdrop-blur-sm border border-white/5 rounded-xl;
   }
   
   .glass-button {
-    background: rgb(var(--card));
-    @apply backdrop-blur-sm border border-border rounded-lg px-4 py-2 hover:bg-accent/10 transition-colors;
+    background: rgb(var(--surface));
+    @apply backdrop-blur-sm border border-white/10 rounded-lg px-4 py-2 hover:border-blue-500/30 transition-colors;
+  }
+
+  .glow-orb {
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(120px);
+    opacity: 0.04;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .text-accent-gradient {
+    background: linear-gradient(135deg, rgb(96 165 250), rgb(59 130 246));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .stat-number {
+    font-family: 'Instrument Serif', serif;
+  }
+
+  .category-pill {
+    @apply text-xs px-2.5 py-1 rounded-lg transition-colors;
+    background: rgb(var(--surface));
+    border: 1px solid rgb(var(--border));
+  }
+
+  .category-pill:hover {
+    border-color: rgb(var(--accent) / 0.3);
+  }
+
+  .category-pill.active {
+    background: rgb(var(--accent) / 0.1);
+    border-color: rgb(var(--accent) / 0.3);
+    color: rgb(var(--accent));
   }
 }
 
 @layer utilities {
-  .bg-background { background: rgb(var(--background)); }
-  .bg-foreground { background: rgb(var(--foreground)); }
-  .bg-card { background: rgb(var(--card)); }
+  .bg-background { background: rgb(var(--bg)); }
+  .bg-surface { background: rgb(var(--surface)); }
+  .bg-surface2 { background: rgb(var(--surface2)); }
   .bg-accent { background: rgb(var(--accent)); }
   .bg-accent\/10 { background: rgb(var(--accent) / 0.1); }
   .bg-accent\/20 { background: rgb(var(--accent) / 0.2); }
   
-  .text-foreground { color: rgb(var(--foreground)); }
-  .text-muted { color: rgb(var(--muted)); }
-  .text-muted-foreground { color: rgb(var(--muted-foreground)); }
+  .text-foreground { color: rgb(var(--text)); }
+  .text-dim { color: rgb(var(--text-dim)); }
+  .text-muted { color: rgb(var(--text-muted)); }
   .text-accent { color: rgb(var(--accent)); }
   
-  .border-border { border-color: rgb(var(--border)); }
+  .border-subtle { border-color: rgb(var(--border)); }
+  .border-glow { border-color: rgb(var(--border-glow)); }
   .border-accent { border-color: rgb(var(--accent)); }
   .border-accent\/30 { border-color: rgb(var(--accent) / 0.3); }
   

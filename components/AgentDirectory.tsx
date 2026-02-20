@@ -172,13 +172,13 @@ export default function AgentDirectory() {
   }
 
   return (
-    <section className="py-8 px-4 md:px-6" id="agents">
+    <section className="py-12 px-4 md:px-6 relative z-10" id="agents">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
           <div>
-            <h2 className="text-lg md:text-xl font-semibold text-foreground">Agent Reputation Scores</h2>
-            <p className="text-muted-foreground text-sm">
+            <h2 className="font-serif text-2xl md:text-3xl font-normal text-foreground mb-1">Agent Directory</h2>
+            <p className="text-dim text-sm font-mono">
               {loading ? 'Loading agents...' : `${filteredAgents.length} agents on Base`}
             </p>
           </div>
@@ -186,13 +186,13 @@ export default function AgentDirectory() {
           {/* Search in directory */}
           <div className="flex items-center gap-2">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search or paste address..."
-                className="w-56 bg-card border border-border rounded-lg pl-9 pr-3 py-1.5 text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:border-accent/50"
+                className="w-56 bg-surface border border-white/10 rounded-lg pl-9 pr-3 py-2 text-sm text-foreground placeholder-muted focus:outline-none focus:border-blue-500/50 font-mono"
               />
             </div>
           </div>
@@ -309,15 +309,13 @@ export default function AgentDirectory() {
         )}
         
         {/* Category Filter */}
-        <div className="flex items-center gap-1.5 flex-wrap mb-4">
+        <div className="flex items-center gap-2 flex-wrap mb-6">
           {categories.map(cat => (
             <button
               key={cat}
               onClick={() => setFilter(cat)}
-              className={`px-2.5 py-1 text-xs rounded-lg transition-colors ${
-                filter === cat 
-                  ? 'bg-accent/20 text-accent border border-accent/30' 
-                  : 'bg-card text-muted-foreground border border-border hover:bg-accent/5'
+              className={`category-pill font-mono ${
+                filter === cat ? 'active' : ''
               }`}
             >
               {cat}
@@ -328,20 +326,20 @@ export default function AgentDirectory() {
         {/* Loading State */}
         {loading && (
           <div className="flex items-center justify-center py-20">
-            <Loader2 className="w-8 h-8 text-accent animate-spin" />
+            <Loader2 className="w-8 h-8 text-blue-400 animate-spin" />
           </div>
         )}
 
         {/* No Results */}
         {!loading && filteredAgents.length === 0 && !liveScore && !liveLoading && (
-          <div className="text-center py-12 text-muted-foreground">
+          <div className="text-center py-12 text-dim font-mono">
             <p>No agents found matching "{searchQuery}"</p>
             {isEthAddress(searchQuery.trim()) ? (
               <p className="mt-2 text-sm">Searching for live score...</p>
             ) : (
               <button 
                 onClick={() => setSearchQuery('')}
-                className="mt-2 text-accent hover:underline text-sm"
+                className="mt-2 text-blue-400 hover:underline text-sm"
               >
                 Clear search
               </button>
@@ -355,10 +353,10 @@ export default function AgentDirectory() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="bg-card border border-border rounded-xl overflow-hidden"
+            className="bg-surface border border-white/5 rounded-xl overflow-hidden"
           >
             {/* Table Header */}
-            <div className="hidden md:grid grid-cols-12 gap-2 px-4 py-3 border-b border-border text-xs text-muted-foreground uppercase tracking-wider">
+            <div className="hidden md:grid grid-cols-12 gap-2 px-4 py-3 border-b border-white/5 text-[10px] text-muted uppercase tracking-[2px] font-mono">
               <button 
                 onClick={() => handleSort('name')}
                 className="col-span-4 flex items-center gap-1 hover:text-foreground transition-colors text-left"
