@@ -163,7 +163,14 @@ bot.onText(/\/check(?:\s+(.+))?/, async (msg, match) => {
     const score = data.score || 0
     const grade = data.grade || 'F'
     const recommendation = data.recommendation || ''
-    const source = data.source === 'database' ? '✅ Indexed on Spawn' : '📡 Live data'
+    
+    // Source with TEE verification status
+    let source = '📡 Live data'
+    if (data.source === 'database') {
+      source = '✅ Indexed on Spawn'
+    } else if (data.source === 'tee' && data.verified) {
+      source = '🛡️ TEE Verified (EigenCloud)'
+    }
     
     let breakdown = ''
     if (data.breakdown) {
@@ -183,13 +190,18 @@ bot.onText(/\/check(?:\s+(.+))?/, async (msg, match) => {
       ? `\n*Flags:*\n${data.flags.map(f => `• ${f}`).join('\n')}\n` 
       : ''
 
+    // TEE attestation info
+    const attestation = data.verified && data.teeAttestation 
+      ? `\n🔐 *Cryptographic Proof:*\nSigner: \`${data.teeAttestation.signer.slice(0, 10)}...${data.teeAttestation.signer.slice(-6)}\`\n`
+      : ''
+
     const response = `
 🛡️ *${name}* ${token}
 
 ${formatGrade(grade, score)}
 
 ${recommendation}
-${breakdown}${flags}
+${breakdown}${flags}${attestation}
 📊 Source: ${source}
 🔗 [View on Spawn](${API_URL}/agent/${address})
 `

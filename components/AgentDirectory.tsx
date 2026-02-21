@@ -17,6 +17,14 @@ const truncateAddress = (addr: string) => addr ? `${addr.slice(0, 6)}...${addr.s
 // Check if input looks like an Ethereum address
 const isEthAddress = (input: string) => /^0x[a-fA-F0-9]{40}$/i.test(input.trim())
 
+interface TEEAttestation {
+  message: string
+  messageHash: string
+  signature: string
+  signer: string
+  verifiable: boolean
+}
+
 interface LiveScore {
   address: string
   name?: string
@@ -33,7 +41,9 @@ interface LiveScore {
   } | null
   flags: string[]
   recommendation: string
-  source: 'database' | 'live' | 'none'
+  source: 'database' | 'live' | 'tee' | 'none' | 'fallback'
+  verified?: boolean
+  teeAttestation?: TEEAttestation
   timestamp: string
 }
 
@@ -240,6 +250,11 @@ export default function AgentDirectory() {
                           {liveScore.token && (
                             <span className="text-muted-foreground text-sm">{liveScore.token}</span>
                           )}
+                          {liveScore.source === 'tee' && liveScore.verified && (
+                            <span className="text-xs px-1.5 py-0.5 rounded bg-green-500/20 text-green-400 flex items-center gap-1">
+                              <Shield className="w-3 h-3" /> TEE Verified
+                            </span>
+                          )}
                           {liveScore.source === 'live' && (
                             <span className="text-xs px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400">LIVE</span>
                           )}
@@ -302,6 +317,39 @@ export default function AgentDirectory() {
                   <div className="text-sm text-foreground">
                     {liveScore.recommendation}
                   </div>
+
+                  {/* TEE Attestation */}
+                  {liveScore.verified && liveScore.teeAttestation && (
+                    <div className="mt-4 pt-4 border-t border-border">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Shield className="w-4 h-4 text-green-400" />
+                        <span className="text-sm font-medium text-green-400">Verified by EigenCloud TEE</span>
+                        <a 
+                          href="https://verify-sepolia.eigencloud.xyz/app/0xA4Fb47204b7211F503B8bd02Fb2C54ed7fEa7dA1"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="ml-auto text-xs text-blue-400 hover:underline flex items-center gap-1"
+                        >
+                          View Attestation <ExternalLink className="w-3 h-3" />
+                        </a>
+                      </div>
+                      <div className="bg-card/50 rounded-lg p-3 font-mono text-xs space-y-1">
+                        <div className="flex items-start gap-2">
+                          <span className="text-muted-foreground w-16 flex-shrink-0">Signer:</span>
+                          <span className="text-foreground break-all">{liveScore.teeAttestation.signer}</span>
+                        </div>
+                        <div className="flex items-start gap-2">
+                          <span className="text-muted-foreground w-16 flex-shrink-0">Sig:</span>
+                          <span className="text-foreground break-all truncate" title={liveScore.teeAttestation.signature}>
+                            {liveScore.teeAttestation.signature.slice(0, 20)}...{liveScore.teeAttestation.signature.slice(-8)}
+                          </span>
+                        </div>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-2">
+                        This score was computed inside a Trusted Execution Environment. The cryptographic signature proves the result hasn't been tampered with.
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
