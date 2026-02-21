@@ -37,44 +37,14 @@ interface ReputationResponse extends TEEReputationResponse {
   source: 'tee' | 'database' | 'fallback'
   verified: boolean
   teeAttestation?: TEEAttestation
+  spawnIndexed?: boolean
+  spawnVerified?: boolean
 }
 
 // Check if address matches any known agent
 function findKnownAgent(address: string) {
   const lowerAddress = address.toLowerCase()
   return agents.find(a => a.contract?.toLowerCase() === lowerAddress)
-}
-
-// Build reputation from known agent data
-function buildFromKnownAgent(agent: typeof agents[0]): ReputationResponse {
-  const grade = agent.score >= 85 ? 'A' : agent.score >= 70 ? 'B' : agent.score >= 55 ? 'C' : agent.score >= 40 ? 'D' : 'F'
-  
-  return {
-    address: agent.contract || agent.id,
-    name: agent.name,
-    token: agent.token,
-    score: agent.score,
-    grade,
-    breakdown: {
-      contractAge: { score: Math.round(agent.score * 0.15), max: 15, detail: 'Indexed agent' },
-      liquidity: { score: Math.round(agent.score * 0.25), max: 25, detail: `${agent.vouched} ETH vouched` },
-      holders: { score: Math.round(agent.score * 0.15), max: 15, detail: `${agent.reviews} reviews` },
-      lpLocked: { score: Math.round(agent.score * 0.15), max: 15, detail: agent.status === 'verified' ? 'Verified' : 'Pending' },
-      volume: { score: Math.round(agent.score * 0.15), max: 15, detail: agent.launchPlatform || 'Unknown' },
-      creatorHistory: { score: Math.round(agent.score * 0.15), max: 15, detail: agent.twitter ? `@${agent.twitter}` : 'Unknown' },
-    },
-    flags: agent.status !== 'verified' ? ['⚠️ Not yet verified on Spawn'] : [],
-    recommendation: agent.score >= 85 
-      ? '✅ High trust. Safe to interact with.'
-      : agent.score >= 70 
-        ? '✅ Good reputation. Proceed with normal caution.'
-        : agent.score >= 55
-          ? '⚠️ Moderate trust. Do additional research.'
-          : '⚠️ Low trust. Exercise caution.',
-    source: 'database',
-    verified: false, // Database entries aren't TEE-verified
-    timestamp: new Date().toISOString(),
-  }
 }
 
 // Call TEE Verifier for cryptographically signed reputation
@@ -139,50 +109,46 @@ export async function GET(request: Request) {
   }
 
   try {
-    // First check our database for known agents
+    // Check if agent is in our database (for enrichment)
     const knownAgent = findKnownAgent(address)
-    if (knownAgent) {
-      // For known agents, still try to get TEE attestation for the score
-      const teeData = await getTEEReputation(address)
-      if (teeData?.attestation) {
-        // Merge database info with TEE attestation
-        const dbResult = buildFromKnownAgent(knownAgent)
-        return NextResponse.json({
-          ...dbResult,
-          // Use TEE score if available
-          score: teeData.score,
-          grade: teeData.grade,
-          breakdown: teeData.breakdown || dbResult.breakdown,
-          verified: true,
-          source: 'tee',
-          teeAttestation: teeData.attestation,
-        })
-      }
-      // Fallback to database only
-      return NextResponse.json(buildFromKnownAgent(knownAgent))
-    }
-
-    // Not in database - call TEE Verifier
+    
+    // ALWAYS call TEE Verifier first - this is the source of truth
     const teeData = await getTEEReputation(address)
     
     if (teeData) {
       // TEE response received - this is the golden path
       const response: ReputationResponse = {
         ...teeData,
+        // Override name/token if we have better info from database
+        name: knownAgent?.name || teeData.name,
+        token: knownAgent?.token || teeData.token,
         source: 'tee',
         verified: !!teeData.attestation,
         teeAttestation: teeData.attestation,
+        // Add Spawn database status
+        spawnIndexed: !!knownAgent,
+        spawnVerified: knownAgent?.status === 'verified',
       }
       
-      // Add flag if not in our database
-      if (!response.flags.some(f => f.includes('Spawn'))) {
-        response.flags = [...response.flags, 'ℹ️ Not indexed on Spawn - submit for verification']
+      // Update flags based on Spawn status
+      let flags = [...(teeData.flags || [])]
+      
+      // Remove the "not indexed" flag if it's in our database
+      if (knownAgent) {
+        flags = flags.filter(f => !f.includes('Not indexed on Spawn'))
+        if (knownAgent.status === 'verified') {
+          flags = ['✅ Verified on Spawn', ...flags]
+        } else {
+          flags = ['📋 Indexed on Spawn (pending verification)', ...flags]
+        }
       }
+      
+      response.flags = flags
       
       return NextResponse.json(response)
     }
     
-    // TEE unavailable - return error (don't fallback to unverified local calc)
+    // TEE unavailable - return error (don't serve unverified scores)
     return NextResponse.json({
       address,
       score: 0,
@@ -195,6 +161,7 @@ export async function GET(request: Request) {
       recommendation: '⚠️ Could not verify score. Please try again.',
       source: 'fallback',
       verified: false,
+      spawnIndexed: !!knownAgent,
       timestamp: new Date().toISOString(),
     })
     
