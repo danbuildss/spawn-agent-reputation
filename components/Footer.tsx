@@ -39,7 +39,7 @@ export default function Footer() {
               Bot
             </a>
             <a 
-              href="https://twitter.com/danbuildss" 
+              href="https://twitter.com/agentspawn_xyz" 
               target="_blank" 
               rel="noopener noreferrer" 
               className="hover:text-blue-400 transition-colors"

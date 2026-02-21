@@ -28,11 +28,11 @@ export default function Navigation() {
           </Link>
           
           <div className="hidden md:flex items-center gap-6 text-sm font-mono">
-            <Link href="/#agents" className="text-dim hover:text-foreground transition-colors">
+            <Link href="/app#agents" className="text-dim hover:text-foreground transition-colors">
               Agents
             </Link>
-            <Link href="/featured" className="text-dim hover:text-foreground transition-colors">
-              Featured
+            <Link href="/app" className="text-dim hover:text-foreground transition-colors">
+              App
             </Link>
             <a 
               href="https://docs.agentspawn.xyz" 

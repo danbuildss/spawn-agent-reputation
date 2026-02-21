@@ -1,26 +1,21 @@
-import Navigation from '@/components/Navigation'
-import Hero from '@/components/Hero'
-import Stats from '@/components/Stats'
-import FeaturedAgents from '@/components/FeaturedAgents'
-import RecentlyAdded from '@/components/RecentlyAdded'
-import AgentDirectory from '@/components/AgentDirectory'
-import FAQ from '@/components/FAQ'
-import Footer from '@/components/Footer'
-import { AgentsProvider } from '@/components/AgentsProvider'
+import LandingHero from '@/components/landing/LandingHero'
+import Features from '@/components/landing/Features'
+import HowItWorks from '@/components/landing/HowItWorks'
+import LandingStats from '@/components/landing/LandingStats'
+import LandingFAQ from '@/components/landing/LandingFAQ'
+import LandingFooter from '@/components/landing/LandingFooter'
+import LandingNav from '@/components/landing/LandingNav'
 
 export default function Home() {
   return (
-    <AgentsProvider>
-      <main className="min-h-screen bg-background">
-        <Navigation />
-        <Hero />
-        <Stats />
-        <FeaturedAgents />
-        <RecentlyAdded />
-        <AgentDirectory />
-        <FAQ />
-        <Footer />
-      </main>
-    </AgentsProvider>
+    <main className="min-h-screen bg-background">
+      <LandingNav />
+      <LandingHero />
+      <Features />
+      <HowItWorks />
+      <LandingStats />
+      <LandingFAQ />
+      <LandingFooter />
+    </main>
   )
 }
