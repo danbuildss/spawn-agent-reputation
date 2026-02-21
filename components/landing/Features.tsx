@@ -23,7 +23,7 @@ const features = [
 
 export default function Features() {
   return (
-    <section className="py-20 px-4 border-t border-white/5">
+    <section className="py-20 px-4 border-t border-subtle">
       <div className="max-w-4xl mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {features.map((feature, i) => (
@@ -33,11 +33,13 @@ export default function Features() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.4, delay: i * 0.1 }}
-              className="p-6 bg-white/[0.02] border border-white/5 rounded-xl hover:border-white/10 transition-colors"
+              className="glass-card p-6 hover:border-accent/30 transition-colors"
             >
-              <feature.icon className="w-5 h-5 text-blue-500 mb-4" />
-              <h3 className="text-base font-semibold text-white mb-2">{feature.title}</h3>
-              <p className="text-sm text-zinc-500 leading-relaxed">{feature.description}</p>
+              <div className="w-10 h-10 bg-accent/10 border border-accent/30 rounded-lg flex items-center justify-center mb-4">
+                <feature.icon className="w-5 h-5 text-accent" />
+              </div>
+              <h3 className="text-base font-semibold text-foreground mb-2">{feature.title}</h3>
+              <p className="text-sm text-dim leading-relaxed">{feature.description}</p>
             </motion.div>
           ))}
         </div>
