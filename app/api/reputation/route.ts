@@ -2,8 +2,8 @@ import { NextResponse } from 'next/server'
 import { agents } from '@/lib/agents-data'
 import { rateLimit, getRateLimitHeaders } from '@/lib/rate-limit'
 
-// TEE Verifier endpoint (EigenCloud)
-const TEE_VERIFIER_URL = process.env.TEE_VERIFIER_URL || 'http://34.83.73.29:3001'
+// TEE Verifier endpoint (EigenCloud) - with Ethos integration
+const TEE_VERIFIER_URL = process.env.TEE_VERIFIER_URL || 'http://35.230.48.129:3001'
 
 interface TEEAttestation {
   message: string
@@ -25,8 +25,13 @@ interface TEEReputationResponse {
     holders: { score: number; max: number; detail: string }
     lpLocked: { score: number; max: number; detail: string }
     volume: { score: number; max: number; detail: string }
-    creatorHistory: { score: number; max: number; detail: string }
+    creatorReputation: { score: number; max: number; detail: string }
   } | null
+  creator?: {
+    address: string
+    ethosScore?: number
+    ethosLevel?: string
+  }
   flags: string[]
   recommendation: string
   timestamp: string
