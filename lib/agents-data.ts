@@ -26,6 +26,8 @@ export interface Agent {
   launchPlatform?: 'bankr' | 'clanker' | 'virtuals' | 'other'
   imageUrl?: string | null
   marketCap?: string
+  // Team/deployer wallet for Ethos reputation lookup
+  teamWallet?: string
 }
 
 export const formatVouched = (eth: number) => {

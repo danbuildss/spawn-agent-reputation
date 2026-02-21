@@ -4,6 +4,34 @@ import { rateLimit, getRateLimitHeaders } from '@/lib/rate-limit'
 
 // TEE Verifier endpoint (EigenCloud) - with Ethos integration
 const TEE_VERIFIER_URL = process.env.TEE_VERIFIER_URL || 'http://35.230.48.129:3001'
+const ETHOS_API = 'https://api.ethos.network/api/v2'
+
+interface EthosScore {
+  score: number  // 0-2800
+  level: 'untrusted' | 'suspicious' | 'neutral' | 'reputable' | 'exemplary'
+}
+
+// Get Ethos reputation for a wallet address
+async function getEthosScore(address: string): Promise<EthosScore | null> {
+  try {
+    const res = await fetch(`${ETHOS_API}/score/address?address=${address}`, {
+      headers: { 'Accept': 'application/json' },
+    })
+    if (!res.ok) return null
+    return await res.json()
+  } catch {
+    return null
+  }
+}
+
+// Convert Ethos score (0-2800) to Spawn points (0-10)
+function ethosToSpawnScore(ethosScore: number): { score: number; detail: string } {
+  if (ethosScore >= 2240) return { score: 10, detail: `Exemplary (${ethosScore})` }
+  if (ethosScore >= 1680) return { score: 8, detail: `Reputable (${ethosScore})` }
+  if (ethosScore >= 1120) return { score: 5, detail: `Neutral (${ethosScore})` }
+  if (ethosScore >= 560) return { score: 2, detail: `Suspicious (${ethosScore})` }
+  return { score: 0, detail: `Untrusted (${ethosScore})` }
+}
 
 interface TEEAttestation {
   message: string
@@ -145,6 +173,37 @@ export async function GET(request: Request) {
           flags = ['✅ Verified on Spawn', ...flags]
         } else {
           flags = ['📋 Indexed on Spawn (pending verification)', ...flags]
+        }
+        
+        // If agent has a teamWallet, look up their Ethos reputation
+        if (knownAgent.teamWallet && response.breakdown) {
+          const ethosData = await getEthosScore(knownAgent.teamWallet)
+          if (ethosData) {
+            const ethosResult = ethosToSpawnScore(ethosData.score)
+            // Override creator reputation with Ethos score
+            response.breakdown.creatorReputation = {
+              score: ethosResult.score,
+              max: 10,
+              detail: ethosResult.detail,
+            }
+            // Add creator info
+            response.creator = {
+              address: knownAgent.teamWallet,
+              ethosScore: ethosData.score,
+              ethosLevel: ethosData.level,
+            }
+            // Recalculate total score
+            const newTotal = Object.values(response.breakdown).reduce((sum, b) => sum + b.score, 0)
+            response.score = newTotal
+            response.grade = newTotal >= 85 ? 'A' : newTotal >= 70 ? 'B' : newTotal >= 55 ? 'C' : newTotal >= 40 ? 'D' : 'F'
+            
+            // Add flag for Ethos reputation
+            if (ethosData.level === 'exemplary' || ethosData.level === 'reputable') {
+              flags.unshift(`✅ Team has ${ethosData.level} Ethos reputation`)
+            } else if (ethosData.level === 'suspicious' || ethosData.level === 'untrusted') {
+              flags.push(`⚠️ Team has ${ethosData.level} Ethos reputation`)
+            }
+          }
         }
       }
       
