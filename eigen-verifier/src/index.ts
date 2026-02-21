@@ -6,6 +6,13 @@ import { mnemonicToAccount } from 'viem/accounts';
 dotenv.config();
 
 const DEXSCREENER_API = 'https://api.dexscreener.com';
+const ETHOS_API = 'https://api.ethos.network/api/v2';
+const BASESCAN_API = 'https://api.basescan.org/api';
+
+interface EthosScore {
+  score: number;  // 0-2800
+  level: 'untrusted' | 'suspicious' | 'neutral' | 'reputable' | 'exemplary';
+}
 
 interface ScoreBreakdown {
   contractAge: { score: number; max: number; detail: string };
@@ -13,7 +20,7 @@ interface ScoreBreakdown {
   holders: { score: number; max: number; detail: string };
   lpLocked: { score: number; max: number; detail: string };
   volume: { score: number; max: number; detail: string };
-  creatorHistory: { score: number; max: number; detail: string };
+  creatorReputation: { score: number; max: number; detail: string };
 }
 
 interface ReputationScore {
@@ -26,6 +33,11 @@ interface ReputationScore {
   flags: string[];
   recommendation: string;
   timestamp: string;
+  creator?: {
+    address: string;
+    ethosScore?: number;
+    ethosLevel?: string;
+  };
 }
 
 // Fetch token data from DexScreener
@@ -42,17 +54,71 @@ async function getDexScreenerData(address: string): Promise<any | null> {
   }
 }
 
-// Calculate reputation score from on-chain data
-function calculateReputation(pair: any, contractAddress: string): ReputationScore {
+// Get contract creator from BaseScan
+async function getContractCreator(address: string): Promise<string | null> {
+  const apiKey = process.env.BASESCAN_API_KEY;
+  if (!apiKey) return null;
+  
+  try {
+    const res = await fetch(
+      `${BASESCAN_API}?module=contract&action=getcontractcreation&contractaddresses=${address}&apikey=${apiKey}`
+    );
+    if (!res.ok) return null;
+    const data = await res.json() as { result?: Array<{ contractCreator?: string }> };
+    return data.result?.[0]?.contractCreator || null;
+  } catch {
+    return null;
+  }
+}
+
+// Get Ethos reputation score for an address
+async function getEthosScore(address: string): Promise<EthosScore | null> {
+  try {
+    const res = await fetch(
+      `${ETHOS_API}/score/address?address=${address}`,
+      {
+        headers: {
+          'X-Ethos-Client': 'spawn-agent-reputation',
+          'Accept': 'application/json',
+        },
+      }
+    );
+    if (!res.ok) return null;
+    const data = await res.json() as EthosScore;
+    return data;
+  } catch {
+    return null;
+  }
+}
+
+// Convert Ethos score (0-2800) to Spawn points (0-10)
+function ethosToSpawnScore(ethosScore: number): { score: number; detail: string } {
+  // Ethos levels: untrusted (0-559), suspicious (560-1119), neutral (1120-1679), reputable (1680-2239), exemplary (2240-2800)
+  if (ethosScore >= 2240) {
+    return { score: 10, detail: `Exemplary (${ethosScore})` };
+  } else if (ethosScore >= 1680) {
+    return { score: 8, detail: `Reputable (${ethosScore})` };
+  } else if (ethosScore >= 1120) {
+    return { score: 5, detail: `Neutral (${ethosScore})` };
+  } else if (ethosScore >= 560) {
+    return { score: 2, detail: `Suspicious (${ethosScore})` };
+  } else {
+    return { score: 0, detail: `Untrusted (${ethosScore})` };
+  }
+}
+
+// Calculate reputation score from on-chain data + Ethos
+async function calculateReputation(pair: any, contractAddress: string): Promise<ReputationScore> {
   const breakdown: ScoreBreakdown = {
     contractAge: { score: 0, max: 20, detail: 'Unknown' },
     liquidity: { score: 0, max: 25, detail: '$0' },
     holders: { score: 0, max: 15, detail: '0' },
     lpLocked: { score: 0, max: 20, detail: 'Unknown' },
     volume: { score: 0, max: 10, detail: '$0' },
-    creatorHistory: { score: 3, max: 10, detail: 'Not indexed' },
+    creatorReputation: { score: 3, max: 10, detail: 'Not indexed' },
   };
   const flags: string[] = [];
+  let creatorInfo: ReputationScore['creator'] | undefined;
 
   // Contract Age (0-20 points)
   if (pair?.pairCreatedAt) {
@@ -131,6 +197,36 @@ function calculateReputation(pair: any, contractAddress: string): ReputationScor
     breakdown.volume = { score: 2, max: 10, detail: `$${volume24h.toFixed(0)}` };
   }
 
+  // Creator Reputation via Ethos (0-10 points)
+  const tokenAddress = pair?.baseToken?.address || contractAddress;
+  const creatorAddress = await getContractCreator(tokenAddress);
+  
+  if (creatorAddress) {
+    const ethosData = await getEthosScore(creatorAddress);
+    if (ethosData) {
+      const ethosResult = ethosToSpawnScore(ethosData.score);
+      breakdown.creatorReputation = { score: ethosResult.score, max: 10, detail: ethosResult.detail };
+      
+      creatorInfo = {
+        address: creatorAddress,
+        ethosScore: ethosData.score,
+        ethosLevel: ethosData.level,
+      };
+      
+      // Add flags based on Ethos level
+      if (ethosData.level === 'exemplary' || ethosData.level === 'reputable') {
+        flags.unshift(`✅ Creator has ${ethosData.level} Ethos reputation`);
+      } else if (ethosData.level === 'suspicious' || ethosData.level === 'untrusted') {
+        flags.push(`🚨 Creator has ${ethosData.level} Ethos reputation`);
+      }
+    } else {
+      breakdown.creatorReputation = { score: 3, max: 10, detail: 'No Ethos profile' };
+      creatorInfo = { address: creatorAddress };
+    }
+  } else {
+    breakdown.creatorReputation = { score: 3, max: 10, detail: 'Creator unknown' };
+  }
+
   // Calculate total score
   const totalScore = Object.values(breakdown).reduce((sum, b) => sum + b.score, 0);
   
@@ -156,6 +252,7 @@ function calculateReputation(pair: any, contractAddress: string): ReputationScor
     flags,
     recommendation,
     timestamp: new Date().toISOString(),
+    creator: creatorInfo,
   };
 }
 
@@ -185,7 +282,7 @@ async function main() {
 
   // Health check
   server.get('/health', async () => {
-    return { status: 'ok', signer: account.address };
+    return { status: 'ok', signer: account.address, ethosEnabled: true };
   });
 
   // Verifiable reputation score endpoint
@@ -240,8 +337,8 @@ async function main() {
       };
     }
 
-    // Calculate reputation
-    const reputation = calculateReputation(pair, address);
+    // Calculate reputation (now includes Ethos)
+    const reputation = await calculateReputation(pair, address);
 
     // Create attestation message for the score
     const message = `SpawnReputation|${reputation.address}|${reputation.score}|${reputation.grade}|${reputation.timestamp}`;
@@ -265,6 +362,7 @@ async function main() {
     await server.listen({ port, host: '0.0.0.0' });
     console.log(`🛡️ Spawn Verifier running on port ${port}`);
     console.log(`📍 Signer address: ${account.address}`);
+    console.log(`🔗 Ethos Network integration enabled`);
   } catch (error) {
     server.log.error(error);
     process.exit(1);
