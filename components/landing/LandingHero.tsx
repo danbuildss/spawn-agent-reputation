@@ -2,7 +2,6 @@
 
 import { motion } from 'framer-motion'
 import Link from 'next/link'
-import Image from 'next/image'
 
 export default function LandingHero() {
   return (
@@ -12,22 +11,6 @@ export default function LandingHero() {
       <div className="glow-orb w-[500px] h-[500px] bg-purple-500 bottom-[10%] -left-[100px]" />
       
       <div className="max-w-3xl mx-auto text-center relative z-10">
-        {/* Logo */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.5 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.8, ease: "easeOut" }}
-          className="relative w-16 h-16 md:w-20 md:h-20 mx-auto mb-8"
-        >
-          <Image
-            src="/logo.png"
-            alt="Spawn"
-            fill
-            className="object-contain"
-            priority
-          />
-        </motion.div>
-
         {/* Badge */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
@@ -73,12 +56,9 @@ export default function LandingHero() {
         >
           <Link
             href="/app"
-            className="group relative px-6 py-3 font-mono text-sm font-medium"
+            className="px-6 py-3 bg-blue-500/80 hover:bg-blue-500 text-white rounded-lg transition-all duration-300 text-sm font-medium font-mono border border-blue-400/20"
           >
-            <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg blur opacity-60 group-hover:opacity-100 transition duration-300" />
-            <div className="relative px-6 py-3 bg-blue-500 hover:bg-blue-400 text-white rounded-lg transition-colors">
-              Check an Agent →
-            </div>
+            Check an Agent →
           </Link>
           <Link
             href="https://t.me/agentspawn_bot"
