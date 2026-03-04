@@ -32,6 +32,9 @@ export interface Agent {
   status: 'pending' | 'verified' | 'flagged'
   vouched_eth: number
   created_at: string
+  logo_url?: string
+  source?: string
+  last_synced_at?: string
 }
 
 export interface Submission {

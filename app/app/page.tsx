@@ -40,19 +40,28 @@ function getGrade(score: number): string {
 }
 
 // ── AgentAvatar ───────────────────────────────────────────────────
-function AgentAvatar({ name, twitter, size = 40 }: { name: string; twitter?: string; size?: number }) {
+function AgentAvatar({ name, twitter, logoUrl, size = 40 }: { name: string; twitter?: string; logoUrl?: string; size?: number }) {
   const [imgFailed, setImgFailed] = useState(false)
+  const [twitterFailed, setTwitterFailed] = useState(false)
   const initials = name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
   const colors = ['#0052FF', '#4D8EFF', 'rgb(0,214,143)', 'rgb(255,184,0)', '#A855F7']
-  const bg = colors[name.charCodeAt(0) % colors.length]
+  const colorIdx = name.charCodeAt(0) % colors.length
+  const bg = colors[colorIdx]
 
-  if (twitter && !imgFailed) {
+  const imgSrc = !imgFailed && logoUrl ? logoUrl
+    : !twitterFailed && twitter ? `https://unavatar.io/twitter/${twitter.replace('@', '')}`
+    : null
+
+  if (imgSrc) {
     return (
       <img
-        src={`https://unavatar.io/twitter/${twitter.replace('@', '')}`}
+        src={imgSrc}
         alt={name}
         width={size} height={size}
-        onError={() => setImgFailed(true)}
+        onError={() => {
+          if (!imgFailed && logoUrl) setImgFailed(true)
+          else setTwitterFailed(true)
+        }}
         style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}
       />
     )
@@ -79,7 +88,7 @@ function AgentCard({ agent, onClick }: { agent: any; onClick: () => void }) {
       onMouseLeave={e => { const el = e.currentTarget as HTMLDivElement; el.style.borderColor = 'rgb(28,28,28)'; el.style.transform = 'translateY(0)' }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
-        <AgentAvatar name={agent.name || 'Agent'} twitter={agent.twitter} size={40} />
+        <AgentAvatar name={agent.name || 'Agent'} twitter={agent.twitter} logoUrl={agent.logo_url} size={40} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <span style={{ fontSize: 14, fontWeight: 600, color: 'rgb(240,240,240)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{agent.name || 'Unknown Agent'}</span>
@@ -192,7 +201,7 @@ function DirectoryTab() {
       {checkResult && checkGrade && (
         <div style={{ maxWidth: 540, marginBottom: 40, background: 'rgb(12,12,12)', border: `1px solid ${checkColor}25`, borderRadius: 14, padding: '24px 28px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 20 }}>
-            <AgentAvatar name={checkResult.name || 'Agent'} twitter={checkResult.twitter} size={44} />
+            <AgentAvatar name={checkResult.name || 'Agent'} twitter={checkResult.twitter} logoUrl={checkResult.logo_url} size={44} />
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 17, fontWeight: 600, color: 'rgb(240,240,240)' }}>{checkResult.name || 'Unknown Agent'}</div>
               <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 11, color: 'rgb(60,60,70)', marginTop: 2 }}>{search.slice(0, 8)}...{search.slice(-6)}</div>
