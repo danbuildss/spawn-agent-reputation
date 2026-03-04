@@ -154,9 +154,27 @@ export async function GET(req: Request) {
 
       if (!rows.length) continue
 
-      // Upsert in batches of 50
-      for (let i = 0; i < rows.length; i += 50) {
-        const batch = rows.slice(i, i + 50)
+      // Split: new agents vs existing (to protect verified status)
+      const addresses = rows.map((r: any) => r.contract_address)
+      const { data: existing } = await supabaseAdmin
+        .from('agents')
+        .select('contract_address, status')
+        .in('contract_address', addresses)
+      const existingMap = new Map((existing || []).map((e: any) => [e.contract_address, e.status]))
+
+      const newAgents = rows.filter((r: any) => !existingMap.has(r.contract_address))
+      const updateAgents = rows
+        .filter((r: any) => existingMap.has(r.contract_address))
+        .map((r: any) => ({
+          ...r,
+          // Preserve verified status — never overwrite with 'pending' on re-sync
+          status: existingMap.get(r.contract_address) === 'verified' ? 'verified' : r.status,
+        }))
+
+      const allRows = [...newAgents, ...updateAgents]
+
+      for (let i = 0; i < allRows.length; i += 50) {
+        const batch = allRows.slice(i, i + 50)
         const { error } = await supabaseAdmin
           .from('agents')
           .upsert(batch, { onConflict: 'contract_address' })
