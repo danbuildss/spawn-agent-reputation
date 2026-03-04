@@ -658,9 +658,9 @@ function VerifyTab() {
           ✓ Featured badge on your card<br/>
           ✓ Priority in search results
         </div>
-        <a href="https://t.me/agentspawn_bot" target="_blank" rel="noopener noreferrer"
+        <a href="https://t.me/danbuildsss" target="_blank" rel="noopener noreferrer"
           style={{ display: 'inline-block', background: 'rgba(255,184,0,0.12)', border: '1px solid rgba(255,184,0,0.3)', color: 'rgb(255,184,0)', borderRadius: 8, padding: '10px 20px', fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>
-          Contact via Telegram
+          DM @danbuildsss on Telegram
         </a>
       </div>
     </div>
