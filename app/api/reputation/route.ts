@@ -166,8 +166,54 @@ function findKnownAgent(address: string) {
   return agents.find(a => a.contract?.toLowerCase() === address.toLowerCase())
 }
 
+// ── API key check (for authenticated builder requests) ─────────────
+async function checkApiKey(key: string): Promise<{ valid: boolean; reason?: string }> {
+  const { supabaseAdmin } = await import('@/lib/supabase')
+  if (!supabaseAdmin) return { valid: true } // DB unavailable — allow through
+
+  const { data } = await supabaseAdmin
+    .from('api_keys')
+    .select('*')
+    .eq('api_key', key)
+    .single()
+
+  if (!data) return { valid: false, reason: 'invalid_key' }
+
+  const today = new Date().toISOString().split('T')[0]
+  if (data.last_reset_date !== today) {
+    await supabaseAdmin
+      .from('api_keys')
+      .update({ calls_today: 0, last_reset_date: today })
+      .eq('api_key', key)
+    return { valid: true }
+  }
+
+  if (data.calls_today >= data.calls_limit) {
+    return { valid: false, reason: 'rate_limit' }
+  }
+
+  await supabaseAdmin
+    .from('api_keys')
+    .update({ calls_today: data.calls_today + 1 })
+    .eq('api_key', key)
+
+  return { valid: true }
+}
+
 // ── Main handler ──────────────────────────────────────────────────
 export async function GET(request: Request) {
+  // If X-API-Key header present, validate it — invalid/rate-limited keys get 429
+  const apiKey = request.headers.get('x-api-key')
+  if (apiKey) {
+    const keyResult = await checkApiKey(apiKey)
+    if (!keyResult.valid) {
+      const msg = keyResult.reason === 'rate_limit'
+        ? 'Daily rate limit exceeded. Upgrade to Pro at agentspawn.xyz/app'
+        : 'Invalid API key.'
+      return NextResponse.json({ error: msg }, { status: 429 })
+    }
+  }
+
   const ip = request.headers.get('x-forwarded-for')?.split(',')[0] || 'anonymous'
   const rl = rateLimit(`reputation:${ip}`, { windowMs: 60000, max: 30 })
   if (!rl.success) {

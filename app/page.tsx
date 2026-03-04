@@ -50,18 +50,15 @@ export default function LandingPage() {
           </Link>
           <div style={{ display: 'flex', gap: 24, fontSize: 13, fontWeight: 500, color: 'rgb(120,120,130)' }}>
             <Link href="/app" style={{ color: 'inherit', textDecoration: 'none' }}>App</Link>
-            <Link href="/app#agents" style={{ color: 'inherit', textDecoration: 'none' }}>Agents</Link>
-            <Link href="/methodology" style={{ color: 'inherit', textDecoration: 'none' }}>Methodology</Link>
-            <Link href="/verify" style={{ color: 'inherit', textDecoration: 'none' }}>Verify</Link>
           </div>
         </div>
-        <Link href="/app" style={{
+        <a href="https://t.me/agentspawn_bot" target="_blank" rel="noopener noreferrer" style={{
           background: 'rgb(0,82,255)', color: '#fff', fontSize: 13, fontWeight: 600,
           padding: '7px 16px', borderRadius: 7, textDecoration: 'none',
           transition: 'opacity 0.15s',
         }}>
-          Check Score
-        </Link>
+          Telegram Bot
+        </a>
       </nav>
 
       {/* HERO */}

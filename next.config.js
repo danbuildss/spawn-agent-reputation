@@ -1,6 +1,15 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  async redirects() {
+    return [
+      {
+        source: '/methodology',
+        destination: '/app?tab=methodology',
+        permanent: false,
+      },
+    ]
+  },
 }
 
 module.exports = nextConfig
