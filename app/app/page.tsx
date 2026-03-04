@@ -254,7 +254,10 @@ function DirectoryTab() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(290px, 1fr))', gap: 10 }}>
           {filtered.map((agent, i) => (
             <AgentCard key={agent.id || i} agent={agent}
-              onClick={() => router.push(`/agent/${agent.contract_address || agent.address}`)} />
+              onClick={() => {
+                const addr = agent.contract_address || agent.address
+                if (addr && addr !== 'undefined') router.push(`/agent/${addr}`)
+              }} />
           ))}
         </div>
       )}

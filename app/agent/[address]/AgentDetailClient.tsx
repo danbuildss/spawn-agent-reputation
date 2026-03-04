@@ -62,6 +62,12 @@ export default function AgentDetailClient({ agent: initialAgent, address }: Prop
 
   useEffect(() => {
     if (!initialAgent && address) {
+      // Guard: must be a valid contract address
+      if (!address || address === 'undefined' || !/^0x[a-fA-F0-9]{40}$/.test(address)) {
+        setError('Invalid address format.')
+        setLoading(false)
+        return
+      }
       setLoading(true)
       fetch(`/api/reputation?address=${address}`)
         .then(res => res.json())
