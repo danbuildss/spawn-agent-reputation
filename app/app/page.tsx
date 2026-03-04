@@ -100,6 +100,9 @@ function AgentCard({ agent, onClick }: { agent: any; onClick: () => void }) {
                 <path d="M7 13l3 3 7-7" stroke="rgb(0,214,143)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             )}
+            {agent.featured && (
+              <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 9, fontWeight: 700, color: 'rgb(255,184,0)', background: 'rgba(255,184,0,0.1)', border: '1px solid rgba(255,184,0,0.25)', borderRadius: 4, padding: '2px 6px', letterSpacing: '0.06em', textTransform: 'uppercase' }}>Featured</span>
+            )}
           </div>
           <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 11, color: 'rgb(60,60,70)', marginTop: 1 }}>{agent.token || ''}</div>
         </div>
@@ -647,6 +650,22 @@ function VerifyTab() {
           )}
         </>
       )}
+
+      {/* Get Featured CTA */}
+      <div style={{ marginTop: 40, background: 'rgb(14,14,14)', border: '1px solid rgba(255,184,0,0.2)', borderRadius: 12, padding: '24px 28px' }}>
+        <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 11, color: 'rgb(255,184,0)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8 }}>Featured Placement</div>
+        <div style={{ fontSize: 17, fontWeight: 600, color: 'rgb(240,240,240)', marginBottom: 8 }}>$49/month</div>
+        <p style={{ fontSize: 13, color: 'rgb(80,80,90)', lineHeight: 1.6, margin: '0 0 16px' }}>Get your agent pinned at the top of the directory. First impression for every trader who visits Spawn.</p>
+        <div style={{ fontSize: 13, color: 'rgb(160,160,170)', lineHeight: 1.8, marginBottom: 16 }}>
+          ✓ Top of directory listing<br/>
+          ✓ Featured badge on your card<br/>
+          ✓ Priority in search results
+        </div>
+        <a href="https://t.me/agentspawn_bot" target="_blank" rel="noopener noreferrer"
+          style={{ display: 'inline-block', background: 'rgba(255,184,0,0.12)', border: '1px solid rgba(255,184,0,0.3)', color: 'rgb(255,184,0)', borderRadius: 8, padding: '10px 20px', fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>
+          Contact via Telegram
+        </a>
+      </div>
     </div>
   )
 }

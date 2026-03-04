@@ -59,6 +59,7 @@ export default function AgentDetailClient({ agent: initialAgent, address }: Prop
   const [loading, setLoading] = useState(!initialAgent)
   const [error, setError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
+  const [linkCopied, setLinkCopied] = useState(false)
 
   useEffect(() => {
     if (!initialAgent && address) {
@@ -245,6 +246,28 @@ export default function AgentDetailClient({ agent: initialAgent, address }: Prop
                 </div>
               )}
             </div>
+          </div>
+
+          {/* Share row */}
+          <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid rgb(28,28,28)', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <button
+              onClick={() => {
+                navigator.clipboard.writeText(`https://agentspawn.xyz/agent/${address}`)
+                setLinkCopied(true)
+                setTimeout(() => setLinkCopied(false), 2000)
+              }}
+              style={{ background: 'rgb(20,20,20)', border: '1px solid rgb(36,36,36)', color: linkCopied ? 'rgb(0,214,143)' : 'rgb(120,120,130)', borderRadius: 7, padding: '8px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
+            >
+              {linkCopied ? '✓ Link Copied' : 'Copy Link'}
+            </button>
+            <a
+              href={`https://twitter.com/intent/tweet?text=I+checked+${encodeURIComponent(agent.name || 'this agent')}+on+Spawn+%E2%80%94+scored+${score}%2F100+Grade+${grade}.+Know+before+you+ape.&url=https%3A%2F%2Fagentspawn.xyz%2Fagent%2F${address}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgb(20,20,20)', border: '1px solid rgb(36,36,36)', color: 'rgb(120,120,130)', borderRadius: 7, padding: '8px 14px', fontSize: 12, fontWeight: 600, textDecoration: 'none' }}
+            >
+              Share on X
+            </a>
           </div>
         </div>
 

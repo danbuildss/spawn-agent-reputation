@@ -2,6 +2,44 @@ import { NextResponse } from 'next/server'
 import { supabaseAdmin, isSupabaseConfigured } from '@/lib/supabase'
 import { rateLimit, getRateLimitHeaders } from '@/lib/rate-limit'
 
+async function verifyUsdcPayment(txHash: string): Promise<{ valid: boolean; amount?: number; error?: string }> {
+  const BASESCAN_KEY = process.env.BASESCAN_API_KEY
+  const PAYMENT_ADDRESS = '0xdbefd1adb7af527a63037cc6ab14ff545c407b27'
+  const USDC_CONTRACT = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'
+  const MIN_AMOUNT = 28 // $28 minimum (allow slight slippage)
+
+  try {
+    // Get tx receipt from BaseScan
+    const res = await fetch(
+      `https://api.basescan.org/api?module=transaction&action=gettxreceiptstatus&txhash=${txHash}&apikey=${BASESCAN_KEY}`,
+      { signal: AbortSignal.timeout(8000) }
+    )
+    const data = await res.json()
+    if (data.result?.status !== '1') return { valid: false, error: 'Transaction failed or not found' }
+
+    // Check ERC-20 token transfers for USDC to payment address
+    const logsRes = await fetch(
+      `https://api.basescan.org/api?module=account&action=tokentx&contractaddress=${USDC_CONTRACT}&address=${PAYMENT_ADDRESS}&txhash=${txHash}&apikey=${BASESCAN_KEY}`,
+      { signal: AbortSignal.timeout(8000) }
+    )
+    const logsData = await logsRes.json()
+    const transfers = (logsData.result || []).filter((t: any) =>
+      t.to?.toLowerCase() === PAYMENT_ADDRESS.toLowerCase() &&
+      t.contractAddress?.toLowerCase() === USDC_CONTRACT.toLowerCase()
+    )
+
+    if (!transfers.length) return { valid: false, error: 'No USDC transfer to payment address found in this tx' }
+
+    // USDC has 6 decimals
+    const amount = parseInt(transfers[0].value) / 1_000_000
+    if (amount < MIN_AMOUNT) return { valid: false, error: `Amount too low: $${amount.toFixed(2)} (minimum $${MIN_AMOUNT})` }
+
+    return { valid: true, amount }
+  } catch (e: any) {
+    return { valid: false, error: e.message }
+  }
+}
+
 export async function POST(request: Request) {
   // Check if Supabase is configured
   if (!isSupabaseConfigured() || !supabaseAdmin) {
@@ -97,6 +135,24 @@ export async function POST(request: Request) {
       )
     }
 
+    // Auto-verify payment on-chain if paymentTx provided
+    let paymentVerified = false
+    let paymentAmount: number | undefined
+    let paymentWarning: string | undefined
+    let autoApproved = false
+
+    if (paymentTx) {
+      const verification = await verifyUsdcPayment(paymentTx)
+      if (verification.valid) {
+        paymentVerified = true
+        paymentAmount = verification.amount
+      } else {
+        paymentWarning = verification.error
+      }
+    }
+
+    const submissionStatus = paymentVerified ? 'approved' : 'pending'
+
     // Create submission (matches actual schema)
     const { data: submission, error } = await supabaseAdmin
       .from('submissions')
@@ -105,9 +161,11 @@ export async function POST(request: Request) {
         name: name || null,
         submitter_twitter: submitterTwitter || null,
         payment_tx: paymentTx || null,
+        payment_verified: paymentVerified,
+        payment_amount_usdc: paymentAmount || null,
         website: website || null,
         applicant_twitter: applicantTwitter || null,
-        status: 'pending'
+        status: submissionStatus
       })
       .select()
       .single()
@@ -120,11 +178,36 @@ export async function POST(request: Request) {
       )
     }
 
+    // If auto-approved, upsert into agents table
+    if (paymentVerified && submission) {
+      await supabaseAdmin.from('agents').upsert({
+        contract_address: contractAddress.toLowerCase(),
+        name: name || 'Unknown',
+        token: '',
+        description: null,
+        twitter: submitterTwitter || applicantTwitter || null,
+        website: website || null,
+        status: 'verified',
+        verified_at: new Date().toISOString(),
+        score: 0,
+        grade: 'F',
+      }, { onConflict: 'contract_address' })
+      autoApproved = true
+    }
+
+    const message = autoApproved
+      ? 'Payment verified on-chain. Your agent has been auto-approved and is now in the directory.'
+      : paymentWarning
+        ? `Application submitted. Payment could not be verified: ${paymentWarning}. Review within 48 hours.`
+        : 'Application submitted. Review within 48 hours.'
+
     return NextResponse.json({
       success: true,
-      message: 'Application submitted. Review within 48 hours.',
+      paymentVerified,
+      autoApproved,
+      message,
       submissionId: submission.id,
-      status: 'pending'
+      status: submissionStatus
     })
 
   } catch (error) {

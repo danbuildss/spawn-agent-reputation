@@ -30,8 +30,11 @@ async function handleUpdate(update: any) {
   const text: string = msg.text?.trim() || ''
   if (!text) return
 
+  // Strip bot username suffix in group commands (e.g., /check@agentspawn_bot → /check)
+  const cleanText = text.replace(/@\w+/g, '').trim()
+
   // /start or /help
-  if (text.startsWith('/start') || text.startsWith('/help')) {
+  if (cleanText.startsWith('/start') || cleanText.startsWith('/help')) {
     await sendMsg(chatId,
       `*Spawn — Trust Layer for AI Agents*\n\n` +
       `Check reputation scores for any AI agent token on Base before you trade\\.\n\n` +
@@ -47,7 +50,7 @@ async function handleUpdate(update: any) {
   }
 
   // /verify
-  if (text.startsWith('/verify')) {
+  if (cleanText.startsWith('/verify')) {
     await sendMsg(chatId,
       `*Verify Your Agent*\n\n` +
       `Get the verified badge on Spawn\\.\n\n` +
@@ -61,7 +64,7 @@ async function handleUpdate(update: any) {
   }
 
   // /top
-  if (text.startsWith('/top')) {
+  if (cleanText.startsWith('/top')) {
     try {
       const res = await fetch(`${API_URL}/api/agents`)
       const data = await res.json()
@@ -81,7 +84,7 @@ async function handleUpdate(update: any) {
   }
 
   // /stats
-  if (text.startsWith('/stats')) {
+  if (cleanText.startsWith('/stats')) {
     try {
       const res = await fetch(`${API_URL}/api/agents`)
       const data = await res.json()
@@ -100,10 +103,10 @@ async function handleUpdate(update: any) {
 
   // /check <address> or direct address paste
   let address: string | null = null
-  if (text.startsWith('/check')) {
-    address = text.replace('/check', '').trim()
-  } else if (/^0x[a-fA-F0-9]{40}$/.test(text)) {
-    address = text
+  if (cleanText.startsWith('/check')) {
+    address = cleanText.replace('/check', '').trim()
+  } else if (/^0x[a-fA-F0-9]{40}$/.test(cleanText)) {
+    address = cleanText
   }
 
   if (address) {

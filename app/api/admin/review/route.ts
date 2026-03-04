@@ -30,6 +30,23 @@ export async function POST(req: Request) {
         score: 0,
         grade: 'F',
       }, { onConflict: 'contract_address' })
+
+      // Try to notify submitter via XMTP
+      if (sub.submitter_address && process.env.SPAWN_XMTP_PRIVATE_KEY) {
+        try {
+          const { Wallet } = await import('ethers')
+          const { Client } = await import('@xmtp/xmtp-js')
+          const wallet = new Wallet(process.env.SPAWN_XMTP_PRIVATE_KEY)
+          const xmtp = await Client.create(wallet, { env: 'production' })
+          const canMsg = await xmtp.canMessage(sub.submitter_address)
+          if (canMsg) {
+            const conv = await xmtp.conversations.newConversation(sub.submitter_address)
+            await conv.send(
+              `Your agent "${sub.name}" has been verified on Spawn!\n\nView your profile: https://agentspawn.xyz/agent/${sub.contract_address}\n\nYour verified badge is now live in the Spawn directory.\n\n— Spawn`
+            )
+          }
+        } catch {}
+      }
     }
   }
 

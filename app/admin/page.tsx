@@ -34,6 +34,18 @@ export default function AdminPage() {
     setTimeout(() => setActionMsg(''), 3000)
   }
 
+  const featureAgent = async (contractAddress: string) => {
+    const res = await fetch('/api/admin/feature', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contractAddress, adminKey: 'spawn2026', durationDays: 30 }),
+    })
+    const data = await res.json()
+    setActionMsg(data.success ? `Featured until ${new Date(data.featuredUntil).toLocaleDateString()}` : data.error)
+    loadSubmissions()
+    setTimeout(() => setActionMsg(''), 4000)
+  }
+
   const STATUS_COLORS: Record<string, string> = {
     pending: 'rgb(255,184,0)', approved: 'rgb(0,214,143)', rejected: 'rgb(255,59,59)',
   }
@@ -107,6 +119,11 @@ export default function AdminPage() {
                           Reject
                         </button>
                       </div>
+                    )}
+                    {(sub.status === 'approved' || sub.status === 'verified') && sub.contract_address && (
+                      <button onClick={() => featureAgent(sub.contract_address)} style={{ background: 'rgba(255,184,0,0.12)', border: '1px solid rgba(255,184,0,0.3)', color: 'rgb(255,184,0)', borderRadius: 7, padding: '7px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+                        Feature (30d)
+                      </button>
                     )}
                   </div>
                 </div>

@@ -16,10 +16,11 @@ export async function GET() {
   }
 
   try {
-    // Fetch all agents from Supabase
+    // Fetch all agents from Supabase — featured agents first, then by score
     const { data: agents, error } = await supabase
       .from('agents')
       .select('*')
+      .order('featured', { ascending: false })
       .order('score', { ascending: false })
 
     if (error) {
@@ -56,7 +57,9 @@ export async function GET() {
       // Use unavatar.io to get profile pics from Twitter handles
       imageUrl: agent.twitter 
         ? `https://unavatar.io/twitter/${agent.twitter}` 
-        : null
+        : null,
+      featured: agent.featured || false,
+      featured_until: agent.featured_until || null,
     })) || []
 
     return NextResponse.json({
