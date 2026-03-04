@@ -1,6 +1,7 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 
 const GRADE_COLORS: Record<string, string> = {
   A: 'rgb(0,214,143)', B: '#4D8EFF', C: 'rgb(255,184,0)', D: '#FF8C00', F: 'rgb(255,59,59)',
@@ -14,50 +15,95 @@ function getGrade(score: number): string {
   return 'F'
 }
 
-function ScoreCard({ agent }: { agent: any }) {
-  const grade = getGrade(agent.score || agent.trust_score || 0)
+function AgentAvatar({ name, twitter, size = 40 }: { name: string; twitter?: string; size?: number }) {
+  const [imgFailed, setImgFailed] = useState(false)
+  const initials = name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
+  const colors = ['#0052FF', '#4D8EFF', 'rgb(0,214,143)', 'rgb(255,184,0)', '#A855F7']
+  const colorIdx = name.charCodeAt(0) % colors.length
+  const bg = colors[colorIdx]
+
+  if (twitter && !imgFailed) {
+    return (
+      <img
+        src={`https://unavatar.io/twitter/${twitter.replace('@', '')}`}
+        alt={name}
+        width={size} height={size}
+        onError={() => setImgFailed(true)}
+        style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}
+      />
+    )
+  }
+  return (
+    <div style={{ width: size, height: size, borderRadius: '50%', background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: size * 0.35, fontWeight: 700, color: '#fff', flexShrink: 0, fontFamily: 'Space Grotesk, sans-serif' }}>
+      {initials}
+    </div>
+  )
+}
+
+function AgentCard({ agent, onClick }: { agent: any; onClick: () => void }) {
   const score = agent.score || agent.trust_score || 0
-  const color = GRADE_COLORS[grade]
+  const grade = agent.grade || getGrade(score)
+  const color = GRADE_COLORS[grade] || GRADE_COLORS['F']
+  const isVerified = agent.status === 'verified'
+
   return (
     <div
-      style={{ background: 'rgb(14,14,14)', border: '1px solid rgb(28,28,28)', borderRadius: 12, padding: '20px', transition: 'border-color 0.15s, transform 0.15s', cursor: 'pointer' }}
-      onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.borderColor = `${color}40`; (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-2px)' }}
-      onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.borderColor = 'rgb(28,28,28)'; (e.currentTarget as HTMLDivElement).style.transform = 'translateY(0)' }}
-      onClick={() => { window.location.href = `/agent/${agent.address || agent.contract_address}` }}
+      onClick={onClick}
+      style={{ background: 'rgb(14,14,14)', border: '1px solid rgb(28,28,28)', borderRadius: 12, padding: '16px', cursor: 'pointer', transition: 'border-color 0.15s, transform 0.15s' }}
+      onMouseEnter={e => { const el = e.currentTarget as HTMLDivElement; el.style.borderColor = `${color}40`; el.style.transform = 'translateY(-2px)' }}
+      onMouseLeave={e => { const el = e.currentTarget as HTMLDivElement; el.style.borderColor = 'rgb(28,28,28)'; el.style.transform = 'translateY(0)' }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-        <div>
-          <div style={{ fontSize: 15, fontWeight: 600, color: 'rgb(240,240,240)', marginBottom: 2 }}>{agent.name || 'Unknown Agent'}</div>
-          <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 11, color: 'rgb(70,70,80)' }}>
-            {(agent.address || agent.contract_address || '').slice(0, 6)}...{(agent.address || agent.contract_address || '').slice(-4)}
+      {/* Header row */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
+        <AgentAvatar name={agent.name || 'Agent'} twitter={agent.twitter} size={40} />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ fontSize: 14, fontWeight: 600, color: 'rgb(240,240,240)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{agent.name || 'Unknown Agent'}</span>
+            {isVerified && (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
+                <circle cx="12" cy="12" r="12" fill="rgb(0,214,143)" fillOpacity="0.15"/>
+                <path d="M7 13l3 3 7-7" stroke="rgb(0,214,143)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            )}
           </div>
+          <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 11, color: 'rgb(60,60,70)', marginTop: 1 }}>{agent.token || ''}</div>
         </div>
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 32, fontWeight: 900, color, lineHeight: 1 }}>{grade}</div>
-          <div style={{ fontSize: 11, color: 'rgb(120,120,130)', marginTop: 2 }}>{score}/100</div>
+        {/* Grade badge */}
+        <div style={{ background: `${color}12`, border: `1px solid ${color}30`, borderRadius: 8, padding: '6px 10px', textAlign: 'center', flexShrink: 0 }}>
+          <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 20, fontWeight: 900, color, lineHeight: 1 }}>{grade}</div>
+          <div style={{ fontSize: 10, color: 'rgb(100,100,110)', marginTop: 2 }}>{score}/100</div>
         </div>
       </div>
-      <div style={{ background: 'rgb(8,8,8)', borderRadius: 6, height: 4, overflow: 'hidden' }}>
-        <div style={{ height: '100%', width: `${score}%`, background: color, borderRadius: 6, transition: 'width 0.6s ease' }} />
+      {/* Score bar */}
+      <div style={{ background: 'rgb(8,8,8)', borderRadius: 4, height: 3, overflow: 'hidden' }}>
+        <div style={{ height: '100%', width: `${score}%`, background: color, borderRadius: 4 }} />
       </div>
-      {agent.verified && (
-        <div style={{ marginTop: 12, display: 'inline-flex', alignItems: 'center', gap: 5, background: 'rgba(0,214,143,0.1)', border: '1px solid rgba(0,214,143,0.25)', borderRadius: 100, padding: '3px 10px', fontSize: 11, fontWeight: 600, color: 'rgb(0,214,143)' }}>
-          <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/></svg>
-          Verified
-        </div>
+      {/* Category */}
+      {agent.category && (
+        <div style={{ marginTop: 10, fontFamily: 'JetBrains Mono, monospace', fontSize: 10, color: 'rgb(60,60,70)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>{agent.category}</div>
       )}
     </div>
   )
 }
 
+type FilterType = 'all' | 'verified' | 'a' | 'f'
+
+const FILTERS: { key: FilterType; label: string }[] = [
+  { key: 'all', label: 'All' },
+  { key: 'verified', label: 'Verified' },
+  { key: 'a', label: 'Grade A' },
+  { key: 'f', label: 'Grade F' },
+]
+
 export default function AppPage() {
-  const [query, setQuery] = useState('')
+  const router = useRouter()
+  const [search, setSearch] = useState('')
   const [agents, setAgents] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [checking, setChecking] = useState(false)
   const [checkResult, setCheckResult] = useState<any>(null)
   const [checkError, setCheckError] = useState('')
-  const [filter, setFilter] = useState<'all' | 'verified' | 'a' | 'f'>('all')
+  const [filter, setFilter] = useState<FilterType>('all')
 
   useEffect(() => {
     fetch('/api/agents')
@@ -67,143 +113,169 @@ export default function AppPage() {
       .finally(() => setLoading(false))
   }, [])
 
-  const checkScore = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!query.trim()) return
-    setChecking(true)
-    setCheckResult(null)
-    setCheckError('')
-    try {
-      const res = await fetch(`/api/reputation?address=${encodeURIComponent(query.trim())}`)
-      const data = await res.json()
-      if (data.error) setCheckError(data.error)
-      else setCheckResult(data)
-    } catch {
-      setCheckError('Failed to fetch score. Check the address and try again.')
-    }
-    setChecking(false)
-  }
+  const isAddress = (s: string) => /^0x[a-fA-F0-9]{40}$/.test(s.trim())
 
+  const handleSearch = useCallback(async (e: React.FormEvent) => {
+    e.preventDefault()
+    const q = search.trim()
+    if (!q) return
+    if (isAddress(q)) {
+      // Check score directly
+      setChecking(true)
+      setCheckResult(null)
+      setCheckError('')
+      try {
+        const res = await fetch(`/api/reputation?address=${encodeURIComponent(q)}`)
+        const data = await res.json()
+        if (data.error) setCheckError(data.error)
+        else setCheckResult(data)
+      } catch { setCheckError('Failed to fetch score.') }
+      setChecking(false)
+    }
+    // else: filter by name in directory below
+  }, [search])
+
+  // Filter agents
   const filtered = agents.filter(a => {
-    if (filter === 'verified') return a.verified
-    if (filter === 'a') return (a.score || a.trust_score || 0) >= 85
-    if (filter === 'f') return (a.score || a.trust_score || 0) < 40
-    return true
+    const score = a.score || a.trust_score || 0
+    const grade = a.grade || getGrade(score)
+    const matchesFilter =
+      filter === 'all' ? true :
+      filter === 'verified' ? a.status === 'verified' :
+      filter === 'a' ? grade === 'A' :
+      filter === 'f' ? grade === 'F' :
+      true
+    const q = search.trim().toLowerCase()
+    const matchesSearch = !q || isAddress(q) ? true :
+      (a.name || '').toLowerCase().includes(q) ||
+      (a.token || '').toLowerCase().includes(q) ||
+      (a.category || '').toLowerCase().includes(q)
+    return matchesFilter && matchesSearch
   })
 
-  const grade = checkResult ? getGrade(checkResult.score || checkResult.trustScore || 0) : null
-  const gradeColor = grade ? GRADE_COLORS[grade] : '#4D8EFF'
+  const checkGrade = checkResult ? getGrade(checkResult.score || checkResult.trustScore || 0) : null
+  const checkColor = checkGrade ? GRADE_COLORS[checkGrade] : '#4D8EFF'
 
   return (
     <div style={{ minHeight: '100vh', background: 'rgb(8,8,8)' }}>
       {/* NAV */}
-      <nav style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 50, padding: '0 24px', height: 60, background: 'rgba(8,8,8,0.9)', backdropFilter: 'blur(12px)', borderBottom: '1px solid rgb(28,28,28)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <nav style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 50, padding: '0 24px', height: 60, background: 'rgba(8,8,8,0.95)', backdropFilter: 'blur(12px)', borderBottom: '1px solid rgb(20,20,20)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
-          <img src="/logo-new.jpg" alt="Spawn" style={{ width: 28, height: 28, borderRadius: 6, objectFit: 'cover' }} />
-          <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 14, fontWeight: 500, color: 'rgb(240,240,240)', letterSpacing: '-0.01em' }}>spawn</span>
+          <img src="/logo-new.jpg" alt="Spawn" style={{ width: 26, height: 26, borderRadius: 6, objectFit: 'cover' }} />
+          <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 14, fontWeight: 600, color: 'rgb(240,240,240)' }}>spawn</span>
         </Link>
-        <div style={{ display: 'flex', gap: 20, fontSize: 13, color: 'rgb(120,120,130)' }}>
-          <Link href="/methodology" style={{ color: 'inherit', textDecoration: 'none' }}>Methodology</Link>
-          <Link href="/verify" style={{ color: 'inherit', textDecoration: 'none' }}>Verify Agent</Link>
-          <a href="https://t.me/agentspawn_bot" target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'none' }}>Telegram Bot</a>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Link href="/methodology" style={{ fontSize: 13, color: 'rgb(100,100,110)', textDecoration: 'none', padding: '5px 10px' }}>Methodology</Link>
+          <Link href="/verify" style={{ fontSize: 13, color: 'rgb(100,100,110)', textDecoration: 'none', padding: '5px 10px' }}>Verify</Link>
+          <a href="https://t.me/agentspawn_bot" target="_blank" rel="noopener noreferrer"
+            style={{ fontSize: 13, fontWeight: 600, color: '#fff', background: 'rgb(0,82,255)', textDecoration: 'none', padding: '6px 14px', borderRadius: 7 }}>
+            Telegram Bot
+          </a>
         </div>
       </nav>
 
-      <div style={{ padding: '80px 24px 60px', maxWidth: 960, margin: '0 auto' }}>
-        {/* Search hero */}
-        <div style={{ textAlign: 'center', marginBottom: 48, paddingTop: 20 }}>
-          <h1 style={{ fontSize: 'clamp(24px, 4vw, 40px)', fontWeight: 700, letterSpacing: '-0.02em', color: 'rgb(240,240,240)', margin: '0 0 8px' }}>Check any AI agent</h1>
-          <p style={{ fontSize: 15, color: 'rgb(120,120,130)', margin: '0 0 28px' }}>Paste a contract address to get an instant Spawn score</p>
-          <form onSubmit={checkScore} style={{ display: 'flex', gap: 10, maxWidth: 560, margin: '0 auto' }}>
+      <div style={{ padding: '80px 24px 80px', maxWidth: 980, margin: '0 auto' }}>
+        {/* Search section */}
+        <div style={{ paddingTop: 24, marginBottom: 48 }}>
+          <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 11, color: 'rgb(0,82,255)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 10 }}>Score Check</div>
+          <h1 style={{ fontSize: 'clamp(22px, 3.5vw, 36px)', fontWeight: 700, letterSpacing: '-0.02em', color: 'rgb(240,240,240)', margin: '0 0 6px' }}>Check any AI agent</h1>
+          <p style={{ fontSize: 14, color: 'rgb(80,80,90)', margin: '0 0 22px' }}>Paste a contract address for an instant Spawn score, or search the directory below.</p>
+          <form onSubmit={handleSearch} style={{ display: 'flex', gap: 8, maxWidth: 540 }}>
             <input
               type="text"
-              value={query}
-              onChange={e => setQuery(e.target.value)}
-              placeholder="0x... contract address"
-              style={{ flex: 1, background: 'rgb(14,14,14)', border: '1px solid rgb(28,28,28)', borderRadius: 8, padding: '12px 16px', fontSize: 14, color: 'rgb(240,240,240)', outline: 'none', fontFamily: 'JetBrains Mono, monospace' }}
+              value={search}
+              onChange={e => { setSearch(e.target.value); if (!e.target.value) { setCheckResult(null); setCheckError('') } }}
+              placeholder="0x... address or agent name"
+              style={{ flex: 1, background: 'rgb(12,12,12)', border: '1px solid rgb(28,28,28)', borderRadius: 8, padding: '11px 16px', fontSize: 14, color: 'rgb(220,220,220)', outline: 'none', fontFamily: 'JetBrains Mono, monospace' }}
             />
-            <button
-              type="submit"
-              disabled={checking}
-              style={{ background: 'rgb(0,82,255)', color: '#fff', border: 'none', borderRadius: 8, padding: '12px 20px', fontSize: 14, fontWeight: 600, cursor: checking ? 'not-allowed' : 'pointer', opacity: checking ? 0.6 : 1, whiteSpace: 'nowrap' }}
-            >
+            <button type="submit" disabled={checking}
+              style={{ background: 'rgb(0,82,255)', color: '#fff', border: 'none', borderRadius: 8, padding: '11px 20px', fontSize: 14, fontWeight: 600, cursor: checking ? 'not-allowed' : 'pointer', opacity: checking ? 0.6 : 1, whiteSpace: 'nowrap' }}>
               {checking ? 'Checking...' : 'Get Score'}
             </button>
           </form>
         </div>
 
-        {/* Check result error */}
+        {/* Error */}
         {checkError && (
-          <div style={{ maxWidth: 560, margin: '0 auto 32px', background: 'rgba(255,59,59,0.08)', border: '1px solid rgba(255,59,59,0.25)', borderRadius: 10, padding: '14px 16px', fontSize: 14, color: '#FF8080', textAlign: 'center' }}>
+          <div style={{ maxWidth: 540, marginBottom: 32, background: 'rgba(255,59,59,0.06)', border: '1px solid rgba(255,59,59,0.2)', borderRadius: 10, padding: '12px 16px', fontSize: 13, color: '#FF8080' }}>
             {checkError}
           </div>
         )}
 
-        {/* Check result card */}
-        {checkResult && grade && (
-          <div style={{ maxWidth: 560, margin: '0 auto 48px', background: 'rgb(14,14,14)', border: `1px solid ${gradeColor}30`, borderRadius: 14, padding: '28px 32px', boxShadow: `0 0 40px ${gradeColor}10` }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-              <div>
-                <div style={{ fontSize: 18, fontWeight: 600, color: 'rgb(240,240,240)' }}>{checkResult.name || 'Unknown Agent'}</div>
-                <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 11, color: 'rgb(70,70,80)', marginTop: 2 }}>{query.slice(0, 8)}...{query.slice(-6)}</div>
+        {/* Score result card */}
+        {checkResult && checkGrade && (
+          <div style={{ maxWidth: 540, marginBottom: 48, background: 'rgb(12,12,12)', border: `1px solid ${checkColor}25`, borderRadius: 14, padding: '24px 28px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 20 }}>
+              <AgentAvatar name={checkResult.name || 'Agent'} twitter={checkResult.twitter} size={44} />
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 17, fontWeight: 600, color: 'rgb(240,240,240)' }}>{checkResult.name || 'Unknown Agent'}</div>
+                <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 11, color: 'rgb(60,60,70)', marginTop: 2 }}>{search.slice(0, 8)}...{search.slice(-6)}</div>
               </div>
-              <div style={{ textAlign: 'center' }}>
-                <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 56, fontWeight: 900, color: gradeColor, lineHeight: 1 }}>{grade}</div>
-                <div style={{ fontSize: 13, color: 'rgb(120,120,130)' }}>{checkResult.score || checkResult.trustScore || 0} / 100</div>
+              <div style={{ background: `${checkColor}12`, border: `1px solid ${checkColor}30`, borderRadius: 10, padding: '10px 14px', textAlign: 'center' }}>
+                <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 40, fontWeight: 900, color: checkColor, lineHeight: 1 }}>{checkGrade}</div>
+                <div style={{ fontSize: 12, color: 'rgb(100,100,110)', marginTop: 2 }}>{checkResult.score || 0}/100</div>
               </div>
             </div>
-            {/* Factor bars */}
-            {checkResult.factors && Object.entries(checkResult.factors).map(([key, val]: [string, any]) => (
-              <div key={key} style={{ marginBottom: 10 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'rgb(120,120,130)', marginBottom: 4 }}>
-                  <span style={{ textTransform: 'capitalize' }}>{key.replace(/_/g, ' ')}</span>
-                  <span style={{ fontFamily: 'JetBrains Mono, monospace', color: 'rgb(240,240,240)' }}>{val}</span>
-                </div>
-                <div style={{ background: 'rgb(28,28,28)', borderRadius: 4, height: 4 }}>
-                  <div style={{ height: '100%', width: `${Math.min((val / 25) * 100, 100)}%`, background: gradeColor, borderRadius: 4 }} />
-                </div>
-              </div>
-            ))}
-            <div style={{ marginTop: 16, display: 'flex', gap: 8 }}>
-              <Link href={`/agent/${query}`} style={{ flex: 1, background: `${gradeColor}15`, border: `1px solid ${gradeColor}30`, color: gradeColor, borderRadius: 7, padding: '9px', fontSize: 13, fontWeight: 600, textDecoration: 'none', textAlign: 'center' }}>
+            {/* Score bar */}
+            <div style={{ background: 'rgb(20,20,20)', borderRadius: 4, height: 4, marginBottom: 16 }}>
+              <div style={{ height: '100%', width: `${checkResult.score || 0}%`, background: checkColor, borderRadius: 4, transition: 'width 0.6s ease' }} />
+            </div>
+            {checkResult.recommendation && (
+              <p style={{ fontSize: 13, color: 'rgb(120,120,130)', margin: '0 0 16px', lineHeight: 1.5 }}>{checkResult.recommendation}</p>
+            )}
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button onClick={() => router.push(`/agent/${search.trim()}`)}
+                style={{ flex: 1, background: `${checkColor}12`, border: `1px solid ${checkColor}25`, color: checkColor, borderRadius: 7, padding: '9px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
                 Full Report
-              </Link>
-              <button
-                onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/agent/${query}`) }}
-                style={{ background: 'rgb(20,20,20)', border: '1px solid rgb(28,28,28)', color: 'rgb(120,120,130)', borderRadius: 7, padding: '9px 16px', fontSize: 13, cursor: 'pointer' }}
-              >
+              </button>
+              <button onClick={() => navigator.clipboard.writeText(`${window.location.origin}/agent/${search.trim()}`)}
+                style={{ background: 'rgb(18,18,18)', border: '1px solid rgb(28,28,28)', color: 'rgb(100,100,110)', borderRadius: 7, padding: '9px 16px', fontSize: 13, cursor: 'pointer' }}>
                 Share
               </button>
             </div>
           </div>
         )}
 
-        {/* Agent Directory */}
-        <div id="agents" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
-          <h2 style={{ fontSize: 18, fontWeight: 600, color: 'rgb(240,240,240)', margin: 0 }}>Agent Directory</h2>
-          <div style={{ display: 'flex', gap: 8 }}>
-            {(['all', 'verified', 'a', 'f'] as const).map(f => (
-              <button
-                key={f}
-                onClick={() => setFilter(f)}
-                style={{ background: filter === f ? 'rgb(0,82,255)' : 'rgb(14,14,14)', color: filter === f ? '#fff' : 'rgb(120,120,130)', border: `1px solid ${filter === f ? 'transparent' : 'rgb(28,28,28)'}`, borderRadius: 6, padding: '5px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
-              >
-                {f === 'all' ? 'All' : f === 'verified' ? 'Verified' : f === 'a' ? 'Grade A' : 'Grade F'}
+        {/* Directory header + filters */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
+          <div>
+            <div style={{ fontSize: 16, fontWeight: 600, color: 'rgb(240,240,240)' }}>Directory</div>
+            <div style={{ fontSize: 12, color: 'rgb(60,60,70)', marginTop: 2 }}>{filtered.length} agents</div>
+          </div>
+          {/* Filter tabs */}
+          <div style={{ display: 'flex', background: 'rgb(12,12,12)', border: '1px solid rgb(22,22,22)', borderRadius: 10, padding: 3, gap: 2 }}>
+            {FILTERS.map(({ key, label }) => (
+              <button key={key} onClick={() => setFilter(key)}
+                style={{
+                  padding: '6px 14px',
+                  borderRadius: 7,
+                  border: 'none',
+                  fontSize: 12,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  transition: 'all 0.15s',
+                  background: filter === key ? 'rgb(0,82,255)' : 'transparent',
+                  color: filter === key ? '#fff' : 'rgb(80,80,90)',
+                  boxShadow: filter === key ? '0 1px 6px rgba(0,82,255,0.4)' : 'none',
+                }}>
+                {label}
               </button>
             ))}
           </div>
         </div>
 
+        {/* Agent grid */}
         {loading ? (
-          <div style={{ textAlign: 'center', color: 'rgb(70,70,80)', padding: '60px 0', fontFamily: 'JetBrains Mono, monospace', fontSize: 13 }}>Loading agents...</div>
+          <div style={{ textAlign: 'center', color: 'rgb(60,60,70)', padding: '80px 0', fontFamily: 'JetBrains Mono, monospace', fontSize: 13 }}>Loading agents...</div>
+        ) : filtered.length === 0 ? (
+          <div style={{ textAlign: 'center', color: 'rgb(60,60,70)', padding: '80px 0', fontFamily: 'JetBrains Mono, monospace', fontSize: 13 }}>No agents found.</div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12 }}>
-            {filtered.map((agent, i) => <ScoreCard key={i} agent={agent} />)}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(290px, 1fr))', gap: 10 }}>
+            {filtered.map((agent, i) => (
+              <AgentCard key={agent.id || i} agent={agent}
+                onClick={() => router.push(`/agent/${agent.contract_address || agent.address}`)} />
+            ))}
           </div>
-        )}
-
-        {!loading && filtered.length === 0 && (
-          <div style={{ textAlign: 'center', color: 'rgb(70,70,80)', padding: '60px 0', fontFamily: 'JetBrains Mono, monospace', fontSize: 13 }}>No agents found.</div>
         )}
       </div>
     </div>

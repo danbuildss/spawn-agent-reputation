@@ -2,10 +2,9 @@
 
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
-import { Agent, ETH_PRICE } from '@/lib/agents-data'
 
 interface Props {
-  agent: Agent | null
+  agent: any | null
   address: string
 }
 
@@ -25,8 +24,38 @@ function getGrade(score: number): string {
   return 'F'
 }
 
+function AgentAvatar({ name, twitter, size = 64 }: { name: string; twitter?: string; size?: number }) {
+  const [imgFailed, setImgFailed] = useState(false)
+  const initials = name.split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase()
+  const colors = ['#0052FF', '#4D8EFF', 'rgb(0,214,143)', 'rgb(255,184,0)', '#A855F7']
+  const colorIdx = name.charCodeAt(0) % colors.length
+  const bg = colors[colorIdx]
+
+  if (twitter && !imgFailed) {
+    return (
+      <img
+        src={`https://unavatar.io/twitter/${twitter.replace('@', '')}`}
+        alt={name}
+        width={size} height={size}
+        onError={() => setImgFailed(true)}
+        style={{ width: size, height: size, borderRadius: 12, objectFit: 'cover', flexShrink: 0 }}
+      />
+    )
+  }
+  return (
+    <div style={{
+      width: size, height: size, borderRadius: 12, background: bg,
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      fontSize: size * 0.35, fontWeight: 700, color: '#fff', flexShrink: 0,
+      fontFamily: 'Space Grotesk, sans-serif'
+    }}>
+      {initials}
+    </div>
+  )
+}
+
 export default function AgentDetailClient({ agent: initialAgent, address }: Props) {
-  const [agent, setAgent] = useState<Agent | null>(initialAgent)
+  const [agent, setAgent] = useState<any | null>(initialAgent)
   const [loading, setLoading] = useState(!initialAgent)
   const [error, setError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
@@ -44,20 +73,17 @@ export default function AgentDetailClient({ agent: initialAgent, address }: Prop
               id: address,
               name: data.name || 'Unknown',
               token: data.token || '',
-              handle: '',
+              twitter: data.twitter,
               description: data.recommendation || 'No description available',
               score: data.score || 0,
               vouched: 0,
               reviews: 0,
-              category: 'Infrastructure',
+              category: data.category || 'Infrastructure',
               status: data.grade === 'A' ? 'verified' : 'pending',
-              gradient: 'from-gray-500 to-gray-700',
-              logo: data.name?.slice(0, 2) || '??',
-              contract: address,
-              twitter: data.twitter,
+              contract_address: address,
               breakdown: data.breakdown,
               imageUrl: data.imageUrl || data.logo || '',
-            } as unknown as Agent)
+            })
           }
           setLoading(false)
         })
@@ -86,15 +112,22 @@ export default function AgentDetailClient({ agent: initialAgent, address }: Prop
           <div style={{ fontSize: 32, marginBottom: 12 }}>⚠</div>
           <p style={{ color: 'rgb(240,240,240)', fontSize: 18, fontWeight: 600, marginBottom: 8 }}>Agent Not Found</p>
           <p style={{ color: 'rgb(120,120,130)', fontSize: 14, marginBottom: 20 }}>{error || 'Could not find data for this address'}</p>
-          <Link href="/" style={{ color: 'rgb(0,82,255)', textDecoration: 'none', fontSize: 14 }}>← Back to directory</Link>
+          <Link href="/app" style={{ color: 'rgb(0,82,255)', textDecoration: 'none', fontSize: 14 }}>← Back to directory</Link>
         </div>
       </main>
     )
   }
 
-  const grade = getGrade(agent.score)
-  const gradeColor = GRADE_COLORS[grade]
-  const vouchedUSD = agent.vouched * ETH_PRICE
+  const score = agent.score || agent.trust_score || 0
+  const grade = agent.grade || getGrade(score)
+  const gradeColor = GRADE_COLORS[grade] || GRADE_COLORS['F']
+
+  // Support both DB field (contract_address) and legacy field (contract)
+  const contractAddress = agent.contract_address || agent.contract || address
+
+  const vouchedEth = agent.vouched || 0
+  const ETH_PRICE = 3200
+  const vouchedUSD = vouchedEth * ETH_PRICE
 
   const formatUSD = (val: number) => {
     if (val >= 1000000) return `$${(val / 1000000).toFixed(1)}M`
@@ -103,14 +136,14 @@ export default function AgentDetailClient({ agent: initialAgent, address }: Prop
   }
 
   const copyContract = () => {
-    if (agent.contract) {
-      navigator.clipboard.writeText(agent.contract)
+    if (contractAddress) {
+      navigator.clipboard.writeText(contractAddress)
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     }
   }
 
-  const apiBreakdown = (agent as any).breakdown
+  const apiBreakdown = agent.breakdown
   const breakdown = apiBreakdown ? {
     contractAge: { score: apiBreakdown.contractAge?.score || 0, max: apiBreakdown.contractAge?.max || 20, label: 'Contract Age', detail: 'Base mainnet' },
     liquidity: { score: apiBreakdown.liquidity?.score || 0, max: apiBreakdown.liquidity?.max || 25, label: 'Liquidity', detail: 'DEX pools' },
@@ -119,20 +152,20 @@ export default function AgentDetailClient({ agent: initialAgent, address }: Prop
     volume: { score: apiBreakdown.volume?.score || 0, max: apiBreakdown.volume?.max || 10, label: 'Volume', detail: '24h activity' },
     creator: { score: apiBreakdown.creatorHistory?.score || 0, max: apiBreakdown.creatorHistory?.max || 10, label: 'Creator Rep', detail: 'Ethos score' },
   } : {
-    contractAge: { score: Math.round(agent.score * 0.18), max: 20, label: 'Contract Age', detail: 'Base mainnet' },
-    liquidity: { score: Math.round(agent.score * 0.22), max: 25, label: 'Liquidity', detail: 'DEX pools' },
-    holders: { score: Math.round(agent.score * 0.14), max: 15, label: 'Holders', detail: 'Token holders' },
-    lpLocked: { score: Math.round(agent.score * 0.18), max: 20, label: 'LP Locked', detail: 'Lock status' },
-    volume: { score: Math.round(agent.score * 0.09), max: 10, label: 'Volume', detail: '24h activity' },
-    creator: { score: Math.round(agent.score * 0.09), max: 10, label: 'Creator Rep', detail: 'Ethos score' },
+    contractAge: { score: Math.round(score * 0.18), max: 20, label: 'Contract Age', detail: 'Base mainnet' },
+    liquidity: { score: Math.round(score * 0.22), max: 25, label: 'Liquidity', detail: 'DEX pools' },
+    holders: { score: Math.round(score * 0.14), max: 15, label: 'Holders', detail: 'Token holders' },
+    lpLocked: { score: Math.round(score * 0.18), max: 20, label: 'LP Locked', detail: 'Lock status' },
+    volume: { score: Math.round(score * 0.09), max: 10, label: 'Volume', detail: '24h activity' },
+    creator: { score: Math.round(score * 0.09), max: 10, label: 'Creator Rep', detail: 'Ethos score' },
   }
 
-  const basescanUrl = agent.contract
-    ? `https://basescan.org/address/${agent.contract}`
-    : `https://basescan.org/search?q=${agent.token.replace('$', '')}`
+  const basescanUrl = contractAddress
+    ? `https://basescan.org/address/${contractAddress}`
+    : `https://basescan.org/search?q=${(agent.token || '').replace('$', '')}`
 
-  const dexscreenerUrl = agent.contract
-    ? `https://dexscreener.com/base/${agent.contract}`
+  const dexscreenerUrl = contractAddress
+    ? `https://dexscreener.com/base/${contractAddress}`
     : `https://dexscreener.com/base`
 
   return (
@@ -158,21 +191,8 @@ export default function AgentDetailClient({ agent: initialAgent, address }: Prop
         {/* Header card */}
         <div style={{ background: 'rgb(14,14,14)', border: `1px solid ${gradeColor}25`, borderRadius: 14, padding: '28px 32px', marginBottom: 16 }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 24, flexWrap: 'wrap' }}>
-            {/* Logo */}
-            <div style={{ width: 64, height: 64, borderRadius: 12, background: 'rgb(28,28,28)', overflow: 'hidden', flexShrink: 0 }}>
-              {(agent as any).imageUrl || (agent as any).logoUrl ? (
-                <img
-                  src={(agent as any).imageUrl || (agent as any).logoUrl}
-                  alt={agent.name}
-                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
-                />
-              ) : (
-                <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, fontWeight: 700, color: 'rgb(240,240,240)', background: `linear-gradient(135deg, ${gradeColor}30, ${gradeColor}10)` }}>
-                  {agent.name?.slice(0, 1) || '?'}
-                </div>
-              )}
-            </div>
+            {/* Avatar */}
+            <AgentAvatar name={agent.name || 'Agent'} twitter={agent.twitter} size={64} />
 
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 8 }}>
@@ -186,14 +206,18 @@ export default function AgentDetailClient({ agent: initialAgent, address }: Prop
               </div>
 
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
-                <span style={{ background: 'rgba(0,82,255,0.12)', color: '#4D8EFF', borderRadius: 6, padding: '3px 10px', fontSize: 12, fontWeight: 600 }}>{agent.token}</span>
-                <span style={{ background: 'rgb(28,28,28)', color: 'rgb(120,120,130)', borderRadius: 6, padding: '3px 10px', fontSize: 12 }}>{agent.category}</span>
+                {agent.token && (
+                  <span style={{ background: 'rgba(0,82,255,0.12)', color: '#4D8EFF', borderRadius: 6, padding: '3px 10px', fontSize: 12, fontWeight: 600 }}>{agent.token}</span>
+                )}
+                {agent.category && (
+                  <span style={{ background: 'rgb(28,28,28)', color: 'rgb(120,120,130)', borderRadius: 6, padding: '3px 10px', fontSize: 12 }}>{agent.category}</span>
+                )}
               </div>
 
-              {agent.contract && (
+              {contractAddress && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
                   <code style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 12, color: 'rgb(120,120,130)', background: 'rgb(20,20,20)', padding: '4px 10px', borderRadius: 6 }}>
-                    {agent.contract.slice(0, 10)}...{agent.contract.slice(-8)}
+                    {contractAddress.slice(0, 10)}...{contractAddress.slice(-8)}
                   </code>
                   <button onClick={copyContract} style={{ background: 'none', border: 'none', cursor: 'pointer', color: copied ? 'rgb(0,214,143)' : 'rgb(70,70,80)', fontSize: 12, padding: 0 }}>
                     {copied ? '✓ Copied' : 'Copy'}
@@ -207,11 +231,11 @@ export default function AgentDetailClient({ agent: initialAgent, address }: Prop
             {/* Grade */}
             <div style={{ textAlign: 'center', flexShrink: 0 }}>
               <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 64, fontWeight: 900, color: gradeColor, lineHeight: 1 }}>{grade}</div>
-              <div style={{ fontSize: 24, fontWeight: 700, color: 'rgb(240,240,240)', marginTop: 4 }}>{agent.score}</div>
+              <div style={{ fontSize: 24, fontWeight: 700, color: 'rgb(240,240,240)', marginTop: 4 }}>{score}</div>
               <div style={{ fontSize: 11, color: 'rgb(120,120,130)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Trust Score</div>
-              {agent.vouched > 0 && (
+              {vouchedEth > 0 && (
                 <div style={{ marginTop: 8, fontSize: 13, color: 'rgb(120,120,130)' }}>
-                  {agent.vouched} ETH · {formatUSD(vouchedUSD)}
+                  {vouchedEth} ETH · {formatUSD(vouchedUSD)}
                 </div>
               )}
             </div>
@@ -251,7 +275,7 @@ export default function AgentDetailClient({ agent: initialAgent, address }: Prop
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10, fontSize: 13 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span style={{ color: 'rgb(70,70,80)' }}>Token</span>
-                  <span style={{ color: 'rgb(240,240,240)', fontWeight: 600 }}>{agent.token}</span>
+                  <span style={{ color: 'rgb(240,240,240)', fontWeight: 600 }}>{agent.token || '—'}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span style={{ color: 'rgb(70,70,80)' }}>Chain</span>
@@ -259,7 +283,7 @@ export default function AgentDetailClient({ agent: initialAgent, address }: Prop
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span style={{ color: 'rgb(70,70,80)' }}>Platform</span>
-                  <span style={{ color: 'rgb(240,240,240)', textTransform: 'capitalize' }}>{(agent as any).launchPlatform || (agent as any).platform || 'Base'}</span>
+                  <span style={{ color: 'rgb(240,240,240)', textTransform: 'capitalize' }}>{agent.launchPlatform || agent.platform || 'Base'}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span style={{ color: 'rgb(70,70,80)' }}>Reviews</span>
@@ -273,8 +297,8 @@ export default function AgentDetailClient({ agent: initialAgent, address }: Prop
               <h3 style={{ fontSize: 13, fontWeight: 600, color: 'rgb(120,120,130)', margin: '0 0 14px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Links</h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {agent.twitter && (
-                  <a href={`https://twitter.com/${agent.twitter}`} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'rgb(120,120,130)', textDecoration: 'none' }}>
-                    <span>@{agent.twitter}</span>
+                  <a href={`https://twitter.com/${agent.twitter.replace('@', '')}`} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'rgb(120,120,130)', textDecoration: 'none' }}>
+                    <span>@{agent.twitter.replace('@', '')}</span>
                     <span style={{ fontSize: 11 }}>↗</span>
                   </a>
                 )}
@@ -294,7 +318,7 @@ export default function AgentDetailClient({ agent: initialAgent, address }: Prop
               <div style={{ fontSize: 13, fontWeight: 600, color: 'rgb(240,240,240)', marginBottom: 8 }}>Agent API</div>
               <p style={{ fontSize: 12, color: 'rgb(120,120,130)', lineHeight: 1.6, margin: '0 0 12px' }}>Query this agent programmatically via the Spawn API.</p>
               <a
-                href={`/api/reputation?address=${agent.contract || ''}`}
+                href={`/api/reputation?address=${contractAddress || ''}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 style={{ display: 'block', textAlign: 'center', background: 'rgba(0,82,255,0.12)', border: '1px solid rgba(0,82,255,0.25)', color: '#4D8EFF', borderRadius: 7, padding: '9px', fontSize: 13, fontWeight: 600, textDecoration: 'none' }}
@@ -302,7 +326,7 @@ export default function AgentDetailClient({ agent: initialAgent, address }: Prop
                 Query via API
               </a>
               <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10, color: 'rgb(70,70,80)', marginTop: 8, wordBreak: 'break-all' }}>
-                GET /api/reputation?address={agent.contract ? `${agent.contract.slice(0, 10)}...` : 'CONTRACT'}
+                GET /api/reputation?address={contractAddress ? `${contractAddress.slice(0, 10)}...` : 'CONTRACT'}
               </div>
             </div>
           </div>
