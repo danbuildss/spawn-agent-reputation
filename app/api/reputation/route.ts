@@ -2,238 +2,289 @@ import { NextResponse } from 'next/server'
 import { agents } from '@/lib/agents-data'
 import { rateLimit, getRateLimitHeaders } from '@/lib/rate-limit'
 
-// TEE Verifier endpoint (EigenCloud) - with Ethos integration
+export const dynamic = 'force-dynamic'
+
 const TEE_VERIFIER_URL = process.env.TEE_VERIFIER_URL || 'http://35.230.48.129:3001'
+const BASESCAN_KEY = process.env.BASESCAN_API_KEY || ''
+const BANKR_KEY = process.env.BANKR_API_KEY || ''
 const ETHOS_API = 'https://api.ethos.network/api/v2'
 
-interface EthosScore {
-  score: number  // 0-2800
-  level: 'untrusted' | 'suspicious' | 'neutral' | 'reputable' | 'exemplary'
-}
-
-// Get Ethos reputation for a wallet address
-async function getEthosScore(address: string): Promise<EthosScore | null> {
+// ── Ethos reputation ──────────────────────────────────────────────
+async function getEthosScore(address: string) {
   try {
     const res = await fetch(`${ETHOS_API}/score/address?address=${address}`, {
-      headers: { 'Accept': 'application/json' },
+      headers: { Accept: 'application/json' },
+      signal: AbortSignal.timeout(5000),
     })
     if (!res.ok) return null
     return await res.json()
-  } catch {
-    return null
-  }
+  } catch { return null }
 }
 
-// Convert Ethos score (0-2800) to Spawn points (0-10)
-function ethosToSpawnScore(ethosScore: number): { score: number; detail: string } {
+function ethosToSpawnScore(ethosScore: number) {
   if (ethosScore >= 2240) return { score: 10, detail: `Exemplary (${ethosScore})` }
   if (ethosScore >= 1680) return { score: 8, detail: `Reputable (${ethosScore})` }
   if (ethosScore >= 1120) return { score: 5, detail: `Neutral (${ethosScore})` }
-  if (ethosScore >= 560) return { score: 2, detail: `Suspicious (${ethosScore})` }
+  if (ethosScore >= 560)  return { score: 2, detail: `Suspicious (${ethosScore})` }
   return { score: 0, detail: `Untrusted (${ethosScore})` }
 }
 
-interface TEEAttestation {
-  message: string
-  messageHash: string
-  signature: string
-  signer: string
-  verifiable: boolean
-}
-
-interface TEEReputationResponse {
-  address: string
-  name?: string
-  token?: string
-  score: number
-  grade: 'A' | 'B' | 'C' | 'D' | 'F'
-  breakdown: {
-    contractAge: { score: number; max: number; detail: string }
-    liquidity: { score: number; max: number; detail: string }
-    holders: { score: number; max: number; detail: string }
-    lpLocked: { score: number; max: number; detail: string }
-    volume: { score: number; max: number; detail: string }
-    creatorReputation: { score: number; max: number; detail: string }
-  } | null
-  creator?: {
-    address: string
-    ethosScore?: number
-    ethosLevel?: string
-  }
-  flags: string[]
-  recommendation: string
-  timestamp: string
-  attestation?: TEEAttestation
-}
-
-interface ReputationResponse extends TEEReputationResponse {
-  source: 'tee' | 'database' | 'fallback'
-  verified: boolean
-  teeAttestation?: TEEAttestation
-  spawnIndexed?: boolean
-  spawnVerified?: boolean
-}
-
-// Check if address matches any known agent
-function findKnownAgent(address: string) {
-  const lowerAddress = address.toLowerCase()
-  return agents.find(a => a.contract?.toLowerCase() === lowerAddress)
-}
-
-// Call TEE Verifier for cryptographically signed reputation
-async function getTEEReputation(address: string): Promise<TEEReputationResponse | null> {
+// ── BaseScan helpers ──────────────────────────────────────────────
+async function getContractInfo(address: string) {
   try {
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 10000) // 10s timeout
-    
-    const res = await fetch(`${TEE_VERIFIER_URL}/reputation?address=${address}`, {
-      signal: controller.signal,
-      headers: { 'Accept': 'application/json' }
+    const [creation, holders] = await Promise.all([
+      fetch(`https://api.basescan.org/api?module=contract&action=getcontractcreation&contractaddresses=${address}&apikey=${BASESCAN_KEY}`, { signal: AbortSignal.timeout(6000) })
+        .then(r => r.json()).catch(() => null),
+      fetch(`https://api.basescan.org/api?module=token&action=tokenholdercount&contractaddress=${address}&apikey=${BASESCAN_KEY}`, { signal: AbortSignal.timeout(6000) })
+        .then(r => r.json()).catch(() => null),
+    ])
+
+    const deployedAt = creation?.result?.[0]?.timestamp
+      ? new Date(parseInt(creation.result[0].timestamp) * 1000)
+      : null
+    const deployer = creation?.result?.[0]?.contractCreator || null
+    const holderCount = parseInt(holders?.result || '0') || 0
+    const ageInDays = deployedAt ? (Date.now() - deployedAt.getTime()) / 86400000 : 0
+
+    return { deployedAt, deployer, holderCount, ageInDays }
+  } catch { return { deployedAt: null, deployer: null, holderCount: 0, ageInDays: 0 } }
+}
+
+// ── DexScreener helper ────────────────────────────────────────────
+async function getDexData(address: string) {
+  try {
+    const res = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${address}`, {
+      signal: AbortSignal.timeout(6000),
     })
-    
-    clearTimeout(timeoutId)
-    
-    if (!res.ok) {
-      console.error('TEE verifier error:', res.status, res.statusText)
-      return null
+    if (!res.ok) return null
+    const data = await res.json()
+    const pairs = (data.pairs || []).filter((p: any) => p.chainId === 'base')
+    if (!pairs.length) return null
+
+    const best = pairs.sort((a: any, b: any) => (b.liquidity?.usd || 0) - (a.liquidity?.usd || 0))[0]
+    return {
+      name: best.baseToken?.name || null,
+      symbol: best.baseToken?.symbol || null,
+      liquidity: best.liquidity?.usd || 0,
+      volume24h: best.volume?.h24 || 0,
+      priceChange24h: best.priceChange?.h24 || 0,
+      txns24h: (best.txns?.h24?.buys || 0) + (best.txns?.h24?.sells || 0),
+      pairCreatedAt: best.pairCreatedAt ? new Date(best.pairCreatedAt) : null,
     }
-    
+  } catch { return null }
+}
+
+// ── Bankr agent enrichment ────────────────────────────────────────
+async function getBankrData(address: string) {
+  try {
+    const res = await fetch(`https://api.bankr.bot/agents/${address}`, {
+      headers: { 'X-API-Key': BANKR_KEY, Accept: 'application/json' },
+      signal: AbortSignal.timeout(5000),
+    })
+    if (!res.ok) return null
     return await res.json()
-  } catch (error) {
-    console.error('TEE verifier unreachable:', error)
-    return null
+  } catch { return null }
+}
+
+// ── Score computation (used when TEE unavailable) ─────────────────
+function computeScore(contractAge: number, holderCount: number, liquidity: number, volume24h: number, creatorScore: number) {
+  // Contract age (max 20)
+  let contractAgeScore = 0
+  let contractAgeDetail = ''
+  if (contractAge >= 90) { contractAgeScore = 20; contractAgeDetail = `${Math.floor(contractAge)}d old` }
+  else if (contractAge >= 30) { contractAgeScore = 14; contractAgeDetail = `${Math.floor(contractAge)}d old` }
+  else if (contractAge >= 14) { contractAgeScore = 10; contractAgeDetail = `${Math.floor(contractAge)}d old` }
+  else if (contractAge >= 7)  { contractAgeScore = 5;  contractAgeDetail = `${Math.floor(contractAge)}d old` }
+  else { contractAgeScore = 1; contractAgeDetail = `${Math.floor(contractAge)}d old — new contract` }
+
+  // Liquidity (max 25)
+  let liquidityScore = 0
+  let liquidityDetail = ''
+  if (liquidity >= 500000) { liquidityScore = 25; liquidityDetail = `$${(liquidity/1000).toFixed(0)}K` }
+  else if (liquidity >= 100000) { liquidityScore = 18; liquidityDetail = `$${(liquidity/1000).toFixed(0)}K` }
+  else if (liquidity >= 50000)  { liquidityScore = 13; liquidityDetail = `$${(liquidity/1000).toFixed(0)}K` }
+  else if (liquidity >= 10000)  { liquidityScore = 7;  liquidityDetail = `$${(liquidity/1000).toFixed(0)}K` }
+  else if (liquidity > 0)       { liquidityScore = 2;  liquidityDetail = `$${liquidity.toFixed(0)} — very low` }
+  else { liquidityScore = 0; liquidityDetail = 'No liquidity found' }
+
+  // Holders (max 15)
+  let holdersScore = 0
+  let holdersDetail = ''
+  if (holderCount >= 1000) { holdersScore = 15; holdersDetail = `${holderCount.toLocaleString()} holders` }
+  else if (holderCount >= 500) { holdersScore = 11; holdersDetail = `${holderCount} holders` }
+  else if (holderCount >= 100) { holdersScore = 7;  holdersDetail = `${holderCount} holders` }
+  else if (holderCount >= 10)  { holdersScore = 3;  holdersDetail = `${holderCount} holders — low distribution` }
+  else { holdersScore = 0; holdersDetail = `${holderCount} holders — concentrated` }
+
+  // LP stability (max 20) — infer from volume/liquidity ratio
+  let lpScore = 0
+  let lpDetail = ''
+  const volLiqRatio = liquidity > 0 ? volume24h / liquidity : 0
+  if (liquidity > 50000 && volLiqRatio < 2) { lpScore = 16; lpDetail = 'Stable LP ratio' }
+  else if (liquidity > 10000 && volLiqRatio < 5) { lpScore = 10; lpDetail = 'Moderate LP stability' }
+  else if (liquidity > 0) { lpScore = 4; lpDetail = 'High vol/liq ratio — unstable' }
+  else { lpScore = 0; lpDetail = 'No LP detected' }
+
+  // Volume (max 10)
+  let volumeScore = 0
+  let volumeDetail = ''
+  if (volume24h >= 500000) { volumeScore = 10; volumeDetail = `$${(volume24h/1000).toFixed(0)}K 24h` }
+  else if (volume24h >= 100000) { volumeScore = 8; volumeDetail = `$${(volume24h/1000).toFixed(0)}K 24h` }
+  else if (volume24h >= 10000)  { volumeScore = 5; volumeDetail = `$${(volume24h/1000).toFixed(0)}K 24h` }
+  else if (volume24h > 0) { volumeScore = 2; volumeDetail = `$${volume24h.toFixed(0)} 24h — low activity` }
+  else { volumeScore = 0; volumeDetail = 'No volume' }
+
+  const total = contractAgeScore + liquidityScore + holdersScore + lpScore + volumeScore + creatorScore
+
+  return {
+    score: total,
+    grade: total >= 85 ? 'A' : total >= 70 ? 'B' : total >= 55 ? 'C' : total >= 40 ? 'D' : 'F',
+    breakdown: {
+      contractAge:       { score: contractAgeScore, max: 20, detail: contractAgeDetail },
+      liquidity:         { score: liquidityScore,   max: 25, detail: liquidityDetail },
+      holders:           { score: holdersScore,     max: 15, detail: holdersDetail },
+      lpLocked:          { score: lpScore,          max: 20, detail: lpDetail },
+      volume:            { score: volumeScore,      max: 10, detail: volumeDetail },
+      creatorReputation: { score: creatorScore,     max: 10, detail: 'On-chain history' },
+    },
   }
 }
 
+// ── TEE call ──────────────────────────────────────────────────────
+async function getTEEReputation(address: string) {
+  try {
+    const res = await fetch(`${TEE_VERIFIER_URL}/reputation?address=${address}`, {
+      signal: AbortSignal.timeout(10000),
+      headers: { Accept: 'application/json' },
+    })
+    if (!res.ok) return null
+    return await res.json()
+  } catch { return null }
+}
+
+function findKnownAgent(address: string) {
+  return agents.find(a => a.contract?.toLowerCase() === address.toLowerCase())
+}
+
+// ── Main handler ──────────────────────────────────────────────────
 export async function GET(request: Request) {
-  // Rate limiting: 30 requests per minute per IP
-  const ip = request.headers.get('x-forwarded-for')?.split(',')[0] || 
-             request.headers.get('x-real-ip') || 
-             'anonymous'
-  const rateLimitResult = rateLimit(`reputation:${ip}`, { windowMs: 60000, max: 30 })
-  
-  if (!rateLimitResult.success) {
-    return NextResponse.json(
-      { error: 'Rate limit exceeded. Try again later.' },
-      { status: 429, headers: getRateLimitHeaders(rateLimitResult) }
-    )
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0] || 'anonymous'
+  const rl = rateLimit(`reputation:${ip}`, { windowMs: 60000, max: 30 })
+  if (!rl.success) {
+    return NextResponse.json({ error: 'Rate limit exceeded.' }, { status: 429, headers: getRateLimitHeaders(rl) })
   }
 
-  const { searchParams } = new URL(request.url)
-  const address = searchParams.get('address')
+  const address = new URL(request.url).searchParams.get('address')
 
   if (!address) {
-    return NextResponse.json(
-      { 
-        error: 'Missing address parameter',
-        usage: '/api/reputation?address=0x...',
-        example: '/api/reputation?address=0x532f27101965dd16442e59d40670faf5ebb142e4'
-      },
-      { status: 400 }
-    )
+    return NextResponse.json({ error: 'Missing address parameter', usage: '/api/reputation?address=0x...' }, { status: 400 })
   }
-
-  // Validate address format
   if (!/^0x[a-fA-F0-9]{40}$/.test(address)) {
-    return NextResponse.json(
-      { error: 'Invalid address format. Must be a valid Ethereum address (0x...)' },
-      { status: 400 }
-    )
+    return NextResponse.json({ error: 'Invalid address format.' }, { status: 400 })
   }
 
   try {
-    // Check if agent is in our database (for enrichment)
     const knownAgent = findKnownAgent(address)
-    
-    // ALWAYS call TEE Verifier first - this is the source of truth
+
+    // Try TEE first (golden path)
     const teeData = await getTEEReputation(address)
-    
+
     if (teeData) {
-      // TEE response received - this is the golden path
-      const response: ReputationResponse = {
+      let flags = [...(teeData.flags || [])]
+      let response = {
         ...teeData,
-        // Override name/token if we have better info from database
         name: knownAgent?.name || teeData.name,
         token: knownAgent?.token || teeData.token,
-        source: 'tee',
+        source: 'tee' as const,
         verified: !!teeData.attestation,
         teeAttestation: teeData.attestation,
-        // Add Spawn database status
         spawnIndexed: !!knownAgent,
         spawnVerified: knownAgent?.status === 'verified',
       }
-      
-      // Update flags based on Spawn status
-      let flags = [...(teeData.flags || [])]
-      
-      // Remove the "not indexed" flag if it's in our database
+
       if (knownAgent) {
-        flags = flags.filter(f => !f.includes('Not indexed on Spawn'))
-        if (knownAgent.status === 'verified') {
-          flags = ['✅ Verified on Spawn', ...flags]
-        } else {
-          flags = ['📋 Indexed on Spawn (pending verification)', ...flags]
-        }
-        
-        // If agent has a teamWallet, look up their Ethos reputation
+        flags = flags.filter(f => !f.includes('Not indexed'))
+        flags = knownAgent.status === 'verified'
+          ? ['Verified on Spawn', ...flags]
+          : ['Indexed on Spawn (pending verification)', ...flags]
+
         if (knownAgent.teamWallet && response.breakdown) {
           const ethosData = await getEthosScore(knownAgent.teamWallet)
           if (ethosData) {
-            const ethosResult = ethosToSpawnScore(ethosData.score)
-            // Override creator reputation with Ethos score
-            response.breakdown.creatorReputation = {
-              score: ethosResult.score,
-              max: 10,
-              detail: ethosResult.detail,
-            }
-            // Add creator info
-            response.creator = {
-              address: knownAgent.teamWallet,
-              ethosScore: ethosData.score,
-              ethosLevel: ethosData.level,
-            }
-            // Recalculate total score
-            const newTotal = Object.values(response.breakdown).reduce((sum, b) => sum + b.score, 0)
+            const er = ethosToSpawnScore(ethosData.score)
+            response.breakdown.creatorReputation = { score: er.score, max: 10, detail: er.detail }
+            const newTotal = Object.values(response.breakdown).reduce((s: number, b: any) => s + b.score, 0)
             response.score = newTotal
             response.grade = newTotal >= 85 ? 'A' : newTotal >= 70 ? 'B' : newTotal >= 55 ? 'C' : newTotal >= 40 ? 'D' : 'F'
-            
-            // Add flag for Ethos reputation
-            if (ethosData.level === 'exemplary' || ethosData.level === 'reputable') {
-              flags.unshift(`✅ Team has ${ethosData.level} Ethos reputation`)
-            } else if (ethosData.level === 'suspicious' || ethosData.level === 'untrusted') {
-              flags.push(`⚠️ Team has ${ethosData.level} Ethos reputation`)
-            }
           }
         }
       }
-      
+
       response.flags = flags
-      
       return NextResponse.json(response)
     }
-    
-    // TEE unavailable - return error (don't serve unverified scores)
+
+    // ── TEE unavailable — compute score from real on-chain data ──
+    const [contractInfo, dexData, bankrData] = await Promise.all([
+      getContractInfo(address),
+      getDexData(address),
+      getBankrData(address),
+    ])
+
+    // Creator reputation via Ethos
+    let creatorScore = 5
+    let creatorDetail = 'Unknown deployer'
+    if (contractInfo.deployer) {
+      const ethosData = await getEthosScore(contractInfo.deployer)
+      if (ethosData) {
+        const er = ethosToSpawnScore(ethosData.score)
+        creatorScore = er.score
+        creatorDetail = er.detail
+      }
+    }
+
+    const scored = computeScore(
+      contractInfo.ageInDays,
+      contractInfo.holderCount,
+      dexData?.liquidity || 0,
+      dexData?.volume24h || 0,
+      creatorScore,
+    )
+
+    // Build flags
+    const flags: string[] = []
+    if (knownAgent?.status === 'verified') flags.push('Verified on Spawn')
+    if (contractInfo.ageInDays < 7) flags.push('New contract — less than 7 days old')
+    if ((dexData?.liquidity || 0) < 10000) flags.push('Low liquidity — exercise caution')
+    if (contractInfo.holderCount < 10) flags.push('Highly concentrated ownership')
+
+    // Recommendation
+    let recommendation = ''
+    if (scored.grade === 'A') recommendation = 'Strong trust signals. Well-established contract with healthy liquidity and distribution.'
+    else if (scored.grade === 'B') recommendation = 'Good signals overall. Minor gaps but generally trustworthy.'
+    else if (scored.grade === 'C') recommendation = 'Mixed signals. Review the breakdown carefully before interacting.'
+    else if (scored.grade === 'D') recommendation = 'Significant risk signals present. Proceed with caution.'
+    else recommendation = 'High risk. Multiple negative signals detected. Do your own research.'
+
     return NextResponse.json({
       address,
-      score: 0,
-      grade: 'F' as const,
-      breakdown: null,
-      flags: [
-        '⚠️ TEE verifier temporarily unavailable',
-        'ℹ️ Try again in a moment'
-      ],
-      recommendation: '⚠️ Could not verify score. Please try again.',
-      source: 'fallback',
+      name: bankrData?.name || knownAgent?.name || dexData?.name || null,
+      token: bankrData?.symbol || knownAgent?.token || dexData?.symbol || null,
+      score: scored.score,
+      grade: scored.grade,
+      breakdown: scored.breakdown,
+      creator: contractInfo.deployer ? { address: contractInfo.deployer } : undefined,
+      flags,
+      recommendation,
+      source: 'onchain',
       verified: false,
       spawnIndexed: !!knownAgent,
+      spawnVerified: knownAgent?.status === 'verified',
       timestamp: new Date().toISOString(),
+      _note: 'TEE verifier offline — scored from on-chain data directly',
     })
-    
+
   } catch (error) {
-    console.error('Reputation API error:', error)
-    return NextResponse.json(
-      { error: 'Failed to calculate reputation', details: String(error) },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Failed to calculate reputation', details: String(error) }, { status: 500 })
   }
 }
