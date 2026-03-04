@@ -1,10 +1,8 @@
+'use client'
 import Link from 'next/link'
-import { Metadata } from 'next'
+import dynamic from 'next/dynamic'
 
-export const metadata: Metadata = {
-  title: 'Spawn — Trust Layer for AI Agents',
-  description: 'Know before you ape. Verified reputation scores for AI agent tokens on Base, computed inside EigenLayer TEEs.',
-}
+const Antigravity = dynamic(() => import('@/components/Antigravity'), { ssr: false })
 
 export default function LandingPage() {
   return (
@@ -68,8 +66,28 @@ export default function LandingPage() {
 
       {/* HERO */}
       <section style={{ padding: '140px 24px 80px', position: 'relative', overflow: 'hidden' }}>
+        {/* Antigravity particle field */}
+        <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 0 }}>
+          <Antigravity
+            count={300}
+            magnetRadius={6}
+            ringRadius={7}
+            waveSpeed={0.4}
+            waveAmplitude={1}
+            particleSize={1.5}
+            lerpSpeed={0.05}
+            color="#5227FF"
+            autoAnimate
+            particleVariance={1}
+            rotationSpeed={0}
+            depthFactor={1}
+            pulseSpeed={3}
+            particleShape="capsule"
+            fieldStrength={10}
+          />
+        </div>
         {/* Glow */}
-        <div style={{ position: 'absolute', top: -100, left: '50%', transform: 'translateX(-50%)', width: 600, height: 400, background: 'radial-gradient(ellipse, rgba(0,82,255,0.12) 0%, transparent 70%)', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', top: -100, left: '50%', transform: 'translateX(-50%)', width: 600, height: 400, background: 'radial-gradient(ellipse, rgba(0,82,255,0.12) 0%, transparent 70%)', pointerEvents: 'none', zIndex: 0 }} />
 
         <div style={{ maxWidth: 820, margin: '0 auto', textAlign: 'center', position: 'relative', zIndex: 1 }}>
           {/* Hero logo */}
