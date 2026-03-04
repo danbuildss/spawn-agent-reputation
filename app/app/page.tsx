@@ -177,8 +177,8 @@ function DirectoryTab() {
       {/* Search */}
       <div style={{ marginBottom: 40 }}>
         <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 11, color: 'rgb(0,82,255)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 8 }}>Score Check</div>
-        <h2 style={{ fontSize: 'clamp(20px, 3vw, 30px)', fontWeight: 700, letterSpacing: '-0.02em', color: 'rgb(240,240,240)', margin: '0 0 6px' }}>Check any AI agent</h2>
-        <p style={{ fontSize: 13, color: 'rgb(80,80,90)', margin: '0 0 18px' }}>Paste a contract address for an instant Spawn score, or search the directory below.</p>
+        <h2 style={{ fontSize: 'clamp(20px, 3vw, 30px)', fontWeight: 700, letterSpacing: '-0.02em', color: 'rgb(240,240,240)', margin: '0 0 6px' }}>Check any AI agent on Base</h2>
+        <p style={{ fontSize: 13, color: 'rgb(80,80,90)', margin: '0 0 18px' }}>Paste any contract address for a live on-chain score. No registration needed.</p>
         <form onSubmit={handleSearch} style={{ display: 'flex', gap: 8, maxWidth: 540 }}>
           <input
             type="text"
@@ -233,8 +233,8 @@ function DirectoryTab() {
       {/* Directory header + filters */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
         <div>
-          <div style={{ fontSize: 15, fontWeight: 600, color: 'rgb(240,240,240)' }}>Directory</div>
-          <div style={{ fontSize: 12, color: 'rgb(60,60,70)', marginTop: 2 }}>{filtered.length} agents</div>
+          <div style={{ fontSize: 15, fontWeight: 600, color: 'rgb(240,240,240)' }}>Curated Directory</div>
+          <div style={{ fontSize: 12, color: 'rgb(60,60,70)', marginTop: 2 }}>{filtered.length} agents · <span style={{ color: 'rgb(0,82,255)' }}>check any address live above</span></div>
         </div>
         <div style={{ display: 'flex', background: 'rgb(12,12,12)', border: '1px solid rgb(22,22,22)', borderRadius: 10, padding: 3, gap: 2 }}>
           {FILTERS.map(({ key, label }) => (
