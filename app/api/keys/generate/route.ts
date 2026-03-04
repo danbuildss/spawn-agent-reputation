@@ -21,34 +21,41 @@ async function sendViaXmtp(toAddress: string, message: string): Promise<boolean>
 }
 
 export async function POST(req: Request) {
-  const { walletAddress } = await req.json()
+  const body = await req.json()
+  const { walletAddress, email } = body
 
-  if (!walletAddress || !/^0x[a-fA-F0-9]{40}$/.test(walletAddress.trim())) {
-    return NextResponse.json({ error: 'Valid wallet address required (0x...)' }, { status: 400 })
+  // Validate: need either a valid wallet address or email
+  const isWallet = walletAddress && /^0x[a-fA-F0-9]{40}$/.test(walletAddress.trim())
+  const isEmail = email && email.includes('@') && email.includes('.')
+
+  if (!isWallet && !isEmail) {
+    return NextResponse.json({ error: 'Provide a wallet address (0x...) or email' }, { status: 400 })
   }
-
-  const address = walletAddress.trim().toLowerCase()
 
   if (!supabaseAdmin) {
     return NextResponse.json({ error: 'DB unavailable' }, { status: 503 })
   }
 
-  // Check if wallet already has a key
+  const identifier = isWallet ? walletAddress.trim().toLowerCase() : email.trim().toLowerCase()
+  const identifierField = isWallet ? 'wallet_address' : 'email'
+
+  // Check if already has a key
   const { data: existing } = await supabaseAdmin
     .from('api_keys')
     .select('api_key')
-    .eq('wallet_address', address)
+    .eq(identifierField, identifier)
     .single()
 
   if (existing) {
     return NextResponse.json({ key: existing.api_key, existing: true, xmtpSent: false })
   }
 
-  // Generate key: spwn_live_xxxxx
+  // Generate key
   const key = 'spwn_' + randomBytes(20).toString('hex')
 
   const { error } = await supabaseAdmin.from('api_keys').insert({
-    wallet_address: address,
+    wallet_address: isWallet ? identifier : null,
+    email: isEmail ? identifier : null,
     api_key: key,
     tier: 'free',
     calls_today: 0,
@@ -60,7 +67,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  // Send via XMTP
   const xmtpMessage = `Your Spawn API key is ready.
 
 Key: ${key}
@@ -73,7 +79,11 @@ Upgrade to Pro ($19/month) at agentspawn.xyz/app
 
 — Spawn`
 
-  const xmtpSent = await sendViaXmtp(walletAddress.trim(), xmtpMessage)
+  // Send via XMTP if wallet was provided
+  let xmtpSent = false
+  if (isWallet) {
+    xmtpSent = await sendViaXmtp(walletAddress.trim(), xmtpMessage)
+  }
 
-  return NextResponse.json({ key, existing: false, xmtpSent })
+  return NextResponse.json({ key, existing: false, xmtpSent, method: isWallet ? 'wallet' : 'email' })
 }

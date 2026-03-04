@@ -255,9 +255,11 @@ function DirectoryTab() {
 
 // ── Tab: API ──────────────────────────────────────────────────────
 function ApiTab() {
+  const [inputMode, setInputMode] = useState<'wallet' | 'email'>('wallet')
   const [walletAddress, setWalletAddress] = useState('')
+  const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
-  const [result, setResult] = useState<{ key: string; existing: boolean; xmtpSent: boolean } | null>(null)
+  const [result, setResult] = useState<{ key: string; existing: boolean; xmtpSent: boolean; method?: string } | null>(null)
   const [error, setError] = useState('')
   const [copied, setCopied] = useState(false)
   const [codeCopied, setCodeCopied] = useState(false)
@@ -286,19 +288,30 @@ Headers: X-API-Key: your-key-here`
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    const addr = walletAddress.trim()
-    if (!addr || !/^0x[a-fA-F0-9]{40}$/.test(addr)) {
-      setError('Enter a valid Ethereum wallet address (0x...)')
-      return
+    setError('')
+    if (inputMode === 'wallet') {
+      const addr = walletAddress.trim()
+      if (!addr || !/^0x[a-fA-F0-9]{40}$/.test(addr)) {
+        setError('Enter a valid Ethereum wallet address (0x...)')
+        return
+      }
+    } else {
+      const em = email.trim()
+      if (!em || !em.includes('@') || !em.includes('.')) {
+        setError('Enter a valid email address')
+        return
+      }
     }
     setLoading(true)
-    setError('')
     setResult(null)
     try {
+      const body = inputMode === 'wallet'
+        ? { walletAddress: walletAddress.trim() }
+        : { email: email.trim() }
       const res = await fetch('/api/keys/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ walletAddress: addr }),
+        body: JSON.stringify(body),
       })
       const data = await res.json()
       if (!res.ok) { setError(data.error || 'Something went wrong'); setLoading(false); return }
@@ -357,34 +370,51 @@ Headers: X-API-Key: your-key-here`
       {!result ? (
         <div style={{ background: 'rgb(14,14,14)', border: '1px solid rgb(28,28,28)', borderRadius: 14, padding: '28px 28px', marginBottom: 40 }}>
           <div style={{ fontSize: 15, fontWeight: 600, color: 'rgb(240,240,240)', marginBottom: 4 }}>Get your free API key</div>
-          <p style={{ fontSize: 13, color: 'rgb(80,80,90)', margin: '0 0 20px', lineHeight: 1.5 }}>Enter your wallet address. Your key will be sent to you via XMTP and shown below.</p>
+          <p style={{ fontSize: 13, color: 'rgb(80,80,90)', margin: '0 0 18px', lineHeight: 1.5 }}>Wallet address: key delivered via XMTP. Email: key shown on screen.</p>
+          {/* Mode toggle */}
+          <div style={{ display: 'flex', background: 'rgb(8,8,8)', border: '1px solid rgb(24,24,24)', borderRadius: 8, padding: 3, gap: 3, marginBottom: 16, width: 'fit-content' }}>
+            {(['wallet', 'email'] as const).map(mode => (
+              <button key={mode} onClick={() => { setInputMode(mode); setError('') }}
+                style={{ padding: '6px 16px', borderRadius: 6, border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer', background: inputMode === mode ? 'rgb(0,82,255)' : 'transparent', color: inputMode === mode ? '#fff' : 'rgb(80,80,90)', transition: 'all 0.15s' }}>
+                {mode === 'wallet' ? 'Wallet (XMTP)' : 'Email'}
+              </button>
+            ))}
+          </div>
           <form onSubmit={handleSubmit}>
-            <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'rgb(120,120,130)', marginBottom: 6 }}>Your wallet address</label>
+            <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'rgb(120,120,130)', marginBottom: 6 }}>
+              {inputMode === 'wallet' ? 'Your wallet address' : 'Your email address'}
+            </label>
             <div style={{ display: 'flex', gap: 8 }}>
-              <input
-                type="text"
-                value={walletAddress}
-                onChange={e => setWalletAddress(e.target.value)}
-                placeholder="0x..."
-                style={{ flex: 1, background: 'rgb(8,8,8)', border: '1px solid rgb(32,32,32)', borderRadius: 8, padding: '11px 14px', fontSize: 14, color: 'rgb(220,220,220)', outline: 'none', fontFamily: 'JetBrains Mono, monospace' }}
-              />
+              {inputMode === 'wallet' ? (
+                <input type="text" value={walletAddress} onChange={e => setWalletAddress(e.target.value)}
+                  placeholder="0x..." autoComplete="off"
+                  style={{ flex: 1, background: 'rgb(8,8,8)', border: '1px solid rgb(32,32,32)', borderRadius: 8, padding: '11px 14px', fontSize: 14, color: 'rgb(220,220,220)', outline: 'none', fontFamily: 'JetBrains Mono, monospace' }} />
+              ) : (
+                <input type="email" value={email} onChange={e => setEmail(e.target.value)}
+                  placeholder="you@example.com"
+                  style={{ flex: 1, background: 'rgb(8,8,8)', border: '1px solid rgb(32,32,32)', borderRadius: 8, padding: '11px 14px', fontSize: 14, color: 'rgb(220,220,220)', outline: 'none', fontFamily: 'Space Grotesk, sans-serif' }} />
+              )}
               <button type="submit" disabled={loading}
                 style={{ background: 'rgb(0,82,255)', color: '#fff', border: 'none', borderRadius: 8, padding: '11px 20px', fontSize: 14, fontWeight: 600, cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.6 : 1, whiteSpace: 'nowrap' }}>
                 {loading ? 'Generating...' : 'Get Free API Key'}
               </button>
             </div>
-            {error && <p style={{ color: '#FF8080', fontSize: 13, marginTop: 10, margin: '10px 0 0' }}>{error}</p>}
+            {error && <p style={{ color: '#FF8080', fontSize: 13, margin: '10px 0 0' }}>{error}</p>}
           </form>
         </div>
       ) : (
         <div style={{ marginBottom: 40 }}>
           {result.xmtpSent ? (
-            <div style={{ background: 'rgba(0,214,143,0.06)', border: '1px solid rgba(0,214,143,0.25)', borderRadius: 12, padding: '16px 20px', marginBottom: 16, fontSize: 13, color: 'rgb(0,214,143)', lineHeight: 1.5 }}>
+            <div style={{ background: 'rgba(0,214,143,0.06)', border: '1px solid rgba(0,214,143,0.25)', borderRadius: 12, padding: '14px 18px', marginBottom: 16, fontSize: 13, color: 'rgb(0,214,143)', lineHeight: 1.5 }}>
               Key sent to your wallet via XMTP and shown below.
             </div>
+          ) : result.existing ? (
+            <div style={{ background: 'rgba(77,142,255,0.06)', border: '1px solid rgba(77,142,255,0.25)', borderRadius: 12, padding: '14px 18px', marginBottom: 16, fontSize: 13, color: '#4D8EFF', lineHeight: 1.5 }}>
+              You already have a key — it's shown below.
+            </div>
           ) : (
-            <div style={{ background: 'rgba(255,184,0,0.06)', border: '1px solid rgba(255,184,0,0.25)', borderRadius: 12, padding: '16px 20px', marginBottom: 16, fontSize: 13, color: 'rgb(255,184,0)', lineHeight: 1.5 }}>
-              {result.existing ? 'This wallet already has a key.' : 'Your wallet is not on XMTP yet — save your key now. It will not be shown again.'}
+            <div style={{ background: 'rgba(255,184,0,0.06)', border: '1px solid rgba(255,184,0,0.25)', borderRadius: 12, padding: '14px 18px', marginBottom: 16, fontSize: 13, color: 'rgb(255,184,0)', lineHeight: 1.5 }}>
+              {result.method === 'email' ? 'Key generated — save it now, it will not be shown again.' : 'Your wallet is not on XMTP yet — save your key now, it will not be shown again.'}
             </div>
           )}
           <div style={{ background: 'rgb(12,12,12)', border: '1px solid rgb(28,28,28)', borderRadius: 12, padding: '20px 22px' }}>
