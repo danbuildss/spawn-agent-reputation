@@ -86,6 +86,33 @@ async function getBankrData(address: string) {
   } catch { return null }
 }
 
+// ── Virtuals Protocol enrichment ──────────────────────────────────
+async function getVirtualsData(address: string) {
+  try {
+    // Search by token address
+    const res = await fetch(
+      `https://api.virtuals.io/api/virtuals?filters[tokenAddress]=${address}&limit=1`,
+      { headers: { Accept: 'application/json' }, signal: AbortSignal.timeout(5000) }
+    )
+    if (!res.ok) return null
+    const data = await res.json()
+    const agent = data?.data?.[0]
+    if (!agent) return null
+    return {
+      name: agent.name || null,
+      symbol: agent.symbol || null,
+      description: agent.description || agent.aidesc || null,
+      imageUrl: agent.image || null,
+      holderCount: agent.holderCount || 0,
+      liquidityUsd: agent.liquidityUsd || 0,
+      volume24h: Math.abs(agent.netVolume24h || agent.volume24h || 0),
+      isVerified: agent.isVerified || false,
+      top10HolderPct: agent.top10HolderPercentage || null,
+      twitter: agent.socials?.TWITTER?.replace('https://twitter.com/', '').replace('https://x.com/', '').replace('@', '') || null,
+    }
+  } catch { return null }
+}
+
 // ── Score computation (used when TEE unavailable) ─────────────────
 function computeScore(contractAge: number, holderCount: number, liquidity: number, volume24h: number, creatorScore: number) {
   // Contract age (max 20)
@@ -271,10 +298,11 @@ export async function GET(request: Request) {
     }
 
     // ── TEE unavailable — compute score from real on-chain data ──
-    const [contractInfo, dexData, bankrData] = await Promise.all([
+    const [contractInfo, dexData, bankrData, virtualsData] = await Promise.all([
       getContractInfo(address),
       getDexData(address),
       getBankrData(address),
+      getVirtualsData(address),
     ])
 
     // Creator reputation via Ethos
@@ -289,17 +317,25 @@ export async function GET(request: Request) {
       }
     }
 
+    // Prefer Virtuals data when available (more accurate for Virtuals-native agents)
+    const effectiveLiquidity = virtualsData?.liquidityUsd || dexData?.liquidity || 0
+    const effectiveHolders = virtualsData?.holderCount || contractInfo.holderCount
+    const effectiveVolume = virtualsData?.volume24h || dexData?.volume24h || 0
+    // Virtuals verified adds bonus to creator score
+    if (virtualsData?.isVerified && creatorScore < 8) creatorScore = Math.max(creatorScore, 8)
+
     const scored = computeScore(
       contractInfo.ageInDays,
-      contractInfo.holderCount,
-      dexData?.liquidity || 0,
-      dexData?.volume24h || 0,
+      effectiveHolders,
+      effectiveLiquidity,
+      effectiveVolume,
       creatorScore,
     )
 
     // Build flags
     const flags: string[] = []
     if (knownAgent?.status === 'verified') flags.push('Verified on Spawn')
+    if (virtualsData?.isVerified) flags.push('Verified on Virtuals Protocol')
     if (contractInfo.ageInDays < 7) flags.push('New contract — less than 7 days old')
     if ((dexData?.liquidity || 0) < 10000) flags.push('Low liquidity — exercise caution')
     if (contractInfo.holderCount < 10) flags.push('Highly concentrated ownership')
@@ -314,8 +350,12 @@ export async function GET(request: Request) {
 
     return NextResponse.json({
       address,
-      name: bankrData?.name || knownAgent?.name || dexData?.name || null,
-      token: bankrData?.symbol || knownAgent?.token || dexData?.symbol || null,
+      name: virtualsData?.name || bankrData?.name || knownAgent?.name || dexData?.name || null,
+      token: virtualsData?.symbol ? `$${virtualsData.symbol}` : (bankrData?.symbol || knownAgent?.token || dexData?.symbol || null),
+      description: virtualsData?.description || null,
+      imageUrl: virtualsData?.imageUrl || null,
+      twitter: virtualsData?.twitter || knownAgent?.twitter || null,
+      source_platforms: [...(virtualsData ? ['virtuals'] : []), 'onchain'],
       score: scored.score,
       grade: scored.grade,
       breakdown: scored.breakdown,
