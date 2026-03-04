@@ -56,6 +56,7 @@ export default function AgentDetailClient({ agent: initialAgent, address }: Prop
               contract: address,
               twitter: data.twitter,
               breakdown: data.breakdown,
+              imageUrl: data.imageUrl || data.logo || '',
             } as unknown as Agent)
           }
           setLoading(false)
@@ -142,10 +143,8 @@ export default function AgentDetailClient({ agent: initialAgent, address }: Prop
       {/* NAV */}
       <nav style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 50, padding: '0 24px', height: 60, background: 'rgba(8,8,8,0.9)', backdropFilter: 'blur(12px)', borderBottom: '1px solid rgb(28,28,28)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
-          <div style={{ width: 26, height: 26, borderRadius: 6, background: 'rgb(0,82,255)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8 2L14 5.5V10.5L8 14L2 10.5V5.5L8 2Z" stroke="white" strokeWidth="1.5" fill="none"/><circle cx="8" cy="8" r="2" fill="white"/></svg>
-          </div>
-          <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 14, fontWeight: 500, color: 'rgb(240,240,240)' }}>spawn</span>
+          <img src="/logo-new.jpg" alt="Spawn" style={{ width: 28, height: 28, borderRadius: 6, objectFit: 'cover' }} />
+          <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 14, fontWeight: 500, color: 'rgb(240,240,240)', letterSpacing: '-0.01em' }}>spawn</span>
         </Link>
         <Link href="/app" style={{ fontSize: 13, color: 'rgb(120,120,130)', textDecoration: 'none' }}>← Directory</Link>
       </nav>
@@ -160,8 +159,19 @@ export default function AgentDetailClient({ agent: initialAgent, address }: Prop
         <div style={{ background: 'rgb(14,14,14)', border: `1px solid ${gradeColor}25`, borderRadius: 14, padding: '28px 32px', marginBottom: 16 }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 24, flexWrap: 'wrap' }}>
             {/* Logo */}
-            <div style={{ width: 64, height: 64, borderRadius: 12, background: 'rgb(28,28,28)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, fontWeight: 700, color: 'rgb(240,240,240)', flexShrink: 0 }}>
-              {agent.logo?.slice(0, 2) || '??'}
+            <div style={{ width: 64, height: 64, borderRadius: 12, background: 'rgb(28,28,28)', overflow: 'hidden', flexShrink: 0 }}>
+              {(agent as any).imageUrl || (agent as any).logoUrl ? (
+                <img
+                  src={(agent as any).imageUrl || (agent as any).logoUrl}
+                  alt={agent.name}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+                />
+              ) : (
+                <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, fontWeight: 700, color: 'rgb(240,240,240)', background: `linear-gradient(135deg, ${gradeColor}30, ${gradeColor}10)` }}>
+                  {agent.name?.slice(0, 1) || '?'}
+                </div>
+              )}
             </div>
 
             <div style={{ flex: 1, minWidth: 0 }}>
@@ -249,11 +259,11 @@ export default function AgentDetailClient({ agent: initialAgent, address }: Prop
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span style={{ color: 'rgb(70,70,80)' }}>Platform</span>
-                  <span style={{ color: 'rgb(240,240,240)', textTransform: 'capitalize' }}>{(agent as any).launchPlatform || '-'}</span>
+                  <span style={{ color: 'rgb(240,240,240)', textTransform: 'capitalize' }}>{(agent as any).launchPlatform || (agent as any).platform || 'Base'}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span style={{ color: 'rgb(70,70,80)' }}>Reviews</span>
-                  <span style={{ color: 'rgb(240,240,240)' }}>{agent.reviews}</span>
+                  <span style={{ color: 'rgb(240,240,240)' }}>{agent.reviews > 0 ? agent.reviews : 'None yet'}</span>
                 </div>
               </div>
             </div>

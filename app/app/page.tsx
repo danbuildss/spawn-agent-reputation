@@ -99,10 +99,8 @@ export default function AppPage() {
       {/* NAV */}
       <nav style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 50, padding: '0 24px', height: 60, background: 'rgba(8,8,8,0.9)', backdropFilter: 'blur(12px)', borderBottom: '1px solid rgb(28,28,28)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
-          <div style={{ width: 26, height: 26, borderRadius: 6, background: 'rgb(0,82,255)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8 2L14 5.5V10.5L8 14L2 10.5V5.5L8 2Z" stroke="white" strokeWidth="1.5" fill="none"/><circle cx="8" cy="8" r="2" fill="white"/></svg>
-          </div>
-          <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 14, fontWeight: 500, color: 'rgb(240,240,240)' }}>spawn</span>
+          <img src="/logo-new.jpg" alt="Spawn" style={{ width: 28, height: 28, borderRadius: 6, objectFit: 'cover' }} />
+          <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 14, fontWeight: 500, color: 'rgb(240,240,240)', letterSpacing: '-0.01em' }}>spawn</span>
         </Link>
         <div style={{ display: 'flex', gap: 20, fontSize: 13, color: 'rgb(120,120,130)' }}>
           <Link href="/methodology" style={{ color: 'inherit', textDecoration: 'none' }}>Methodology</Link>
