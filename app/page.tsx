@@ -91,7 +91,7 @@ export default function LandingPage() {
 
         <div style={{ maxWidth: 820, margin: '0 auto', textAlign: 'center', position: 'relative', zIndex: 1 }}>
           {/* Hero logo */}
-          <img src="/logo-new.jpg" alt="Spawn" style={{ width: 56, height: 56, borderRadius: 12, objectFit: 'cover', marginBottom: 24 }} />
+
 
           {/* Badge */}
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(0,82,255,0.1)', border: '1px solid rgba(0,82,255,0.25)', borderRadius: 100, padding: '5px 14px', marginBottom: 32, fontSize: 12, fontWeight: 600, color: '#4D8EFF', fontFamily: 'JetBrains Mono, monospace', animation: 'fadeUp 0.5s ease forwards' }}>
