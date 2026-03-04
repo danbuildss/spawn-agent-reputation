@@ -80,7 +80,7 @@ function AgentCard({ agent, onClick }: { agent: any; onClick: () => void }) {
   const color = GRADE_COLORS[grade] || GRADE_COLORS['F']
   const isVerified = agent.status === 'verified'
   const addr = agent.contract_address || agent.contract || (typeof agent.id === 'string' && agent.id.startsWith('0x') ? agent.id : null)
-  const isClickable = addr && addr !== 'undefined' && !/^0x0{36,}/i.test(addr)
+  const isClickable = !!(addr && addr !== 'undefined')
 
   return (
     <div
@@ -260,11 +260,9 @@ function DirectoryTab() {
           {filtered.map((agent, i) => (
             <AgentCard key={agent.id || i} agent={agent}
               onClick={() => {
-                // API returns contract_address as `contract` or `id`
                 const addr = agent.contract_address || agent.contract || (typeof agent.id === 'string' && agent.id.startsWith('0x') ? agent.id : null)
                 if (!addr || addr === 'undefined') return
-                const isPlaceholder = /^0x0{36,}/i.test(addr)
-                if (!isPlaceholder) router.push(`/agent/${addr}`)
+                router.push(`/agent/${addr}`)
               }} />
           ))}
         </div>
