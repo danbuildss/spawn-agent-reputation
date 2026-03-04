@@ -295,6 +295,33 @@ ${Object.entries(categories).map(([k, v]) => `├ ${k}: ${v}`).join('\n')}
   }
 })
 
+// /alert command
+bot.onText(/\/alert (.+)/, async (msg, match) => {
+  const chatId = msg.chat.id;
+  const address = match[1].trim();
+  if (!/^0x[a-fA-F0-9]{40}$/.test(address)) {
+    bot.sendMessage(chatId, '❌ Invalid address format. Use: /alert 0x...');
+    return;
+  }
+  bot.sendMessage(chatId, `⏳ Setting up alert for ${address.slice(0,8)}...`);
+  try {
+    const scoreRes = await fetch(`https://agentspawn.xyz/api/reputation?address=${address}`);
+    const scoreData = await scoreRes.json();
+    const res = await fetch('https://agentspawn.xyz/api/alerts/watch', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ address, telegramChatId: chatId.toString(), currentScore: scoreData.score || 0 })
+    });
+    if (res.ok) {
+      bot.sendMessage(chatId, `✅ Alert set!\n\nWatching: ${address.slice(0,8)}...\nCurrent score: ${scoreData.score || 0} (${scoreData.grade || 'F'})\n\nYou'll be notified when the score changes by 5+ points.`);
+    } else {
+      bot.sendMessage(chatId, '❌ Failed to set alert. Try again later.');
+    }
+  } catch (e) {
+    bot.sendMessage(chatId, '❌ Error setting alert.');
+  }
+});
+
 // Handle direct contract address (without /check)
 bot.on('message', async (msg) => {
   const text = msg.text?.trim()

@@ -35,7 +35,7 @@ export async function POST(request: Request) {
       )
     }
     
-    const { contractAddress, name, description, category, twitter, submitterTwitter } = body
+    const { contractAddress, name, description, category, twitter, submitterTwitter, paymentTx, website, applicantTwitter } = body
 
     // Validate required fields
     if (!contractAddress) {
@@ -104,6 +104,9 @@ export async function POST(request: Request) {
         contract_address: contractAddress.toLowerCase(),
         name: name || null,
         submitter_twitter: submitterTwitter || null,
+        payment_tx: paymentTx || null,
+        website: website || null,
+        applicant_twitter: applicantTwitter || null,
         status: 'pending'
       })
       .select()
@@ -119,7 +122,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       success: true,
-      message: 'Agent submitted for review',
+      message: 'Application submitted. Review within 48 hours.',
       submissionId: submission.id,
       status: 'pending'
     })
