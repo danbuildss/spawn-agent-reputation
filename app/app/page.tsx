@@ -79,11 +79,13 @@ function AgentCard({ agent, onClick }: { agent: any; onClick: () => void }) {
   const grade = agent.grade || getGrade(score)
   const color = GRADE_COLORS[grade] || GRADE_COLORS['F']
   const isVerified = agent.status === 'verified'
+  const addr = agent.contract_address || agent.address
+  const isClickable = addr && addr !== 'undefined' && !/^0x0{36,}/i.test(addr)
 
   return (
     <div
       onClick={onClick}
-      style={{ background: 'rgb(14,14,14)', border: '1px solid rgb(28,28,28)', borderRadius: 12, padding: '16px', cursor: 'pointer', transition: 'border-color 0.15s, transform 0.15s' }}
+      style={{ background: 'rgb(14,14,14)', border: '1px solid rgb(28,28,28)', borderRadius: 12, padding: '16px', cursor: isClickable ? 'pointer' : 'default', transition: 'border-color 0.15s, transform 0.15s', opacity: isClickable ? 1 : 0.75 }}
       onMouseEnter={e => { const el = e.currentTarget as HTMLDivElement; el.style.borderColor = `${color}40`; el.style.transform = 'translateY(-2px)' }}
       onMouseLeave={e => { const el = e.currentTarget as HTMLDivElement; el.style.borderColor = 'rgb(28,28,28)'; el.style.transform = 'translateY(0)' }}
     >
@@ -256,7 +258,11 @@ function DirectoryTab() {
             <AgentCard key={agent.id || i} agent={agent}
               onClick={() => {
                 const addr = agent.contract_address || agent.address
-                if (addr && addr !== 'undefined') router.push(`/agent/${addr}`)
+                if (!addr || addr === 'undefined') return
+                // Placeholder addresses start with 0x000000000000000000000000000000000000
+                // These agents don't have real contracts yet — skip navigation
+                const isPlaceholder = /^0x0{36,}/i.test(addr)
+                if (!isPlaceholder) router.push(`/agent/${addr}`)
               }} />
           ))}
         </div>
