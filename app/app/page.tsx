@@ -79,7 +79,7 @@ function AgentCard({ agent, onClick }: { agent: any; onClick: () => void }) {
   const grade = agent.grade || getGrade(score)
   const color = GRADE_COLORS[grade] || GRADE_COLORS['F']
   const isVerified = agent.status === 'verified'
-  const addr = agent.contract_address || agent.address
+  const addr = agent.contract_address || agent.contract || (typeof agent.id === 'string' && agent.id.startsWith('0x') ? agent.id : null)
   const isClickable = addr && addr !== 'undefined' && !/^0x0{36,}/i.test(addr)
 
   return (
@@ -260,10 +260,9 @@ function DirectoryTab() {
           {filtered.map((agent, i) => (
             <AgentCard key={agent.id || i} agent={agent}
               onClick={() => {
-                const addr = agent.contract_address || agent.address
+                // API returns contract_address as `contract` or `id`
+                const addr = agent.contract_address || agent.contract || (typeof agent.id === 'string' && agent.id.startsWith('0x') ? agent.id : null)
                 if (!addr || addr === 'undefined') return
-                // Placeholder addresses start with 0x000000000000000000000000000000000000
-                // These agents don't have real contracts yet — skip navigation
                 const isPlaceholder = /^0x0{36,}/i.test(addr)
                 if (!isPlaceholder) router.push(`/agent/${addr}`)
               }} />
