@@ -93,7 +93,7 @@ export default function LandingPage() {
           {/* Badge */}
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(0,82,255,0.1)', border: '1px solid rgba(0,82,255,0.25)', borderRadius: 100, padding: '5px 14px', marginBottom: 32, fontSize: 12, fontWeight: 600, color: '#4D8EFF', fontFamily: 'JetBrains Mono, monospace', animation: 'fadeUp 0.5s ease forwards' }}>
             <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#4D8EFF', boxShadow: '0 0 8px #4D8EFF', animation: 'pulse-dot 2s ease-in-out infinite' }} />
-            EigenLayer Verified TEEs · Base
+            ERC-8004 Reputation Registry · EigenLayer Verified · Base
           </div>
 
           {/* H1 */}
@@ -103,7 +103,7 @@ export default function LandingPage() {
           </h1>
 
           <p style={{ fontSize: 18, color: 'rgb(120,120,130)', fontWeight: 400, lineHeight: 1.6, margin: '0 auto 40px', maxWidth: 520, animation: 'fadeUp 0.6s ease 0.2s both' }}>
-            Know before you ape. Reputation scores for every AI agent token on Base, computed inside tamper-proof EigenLayer TEEs.
+            The ERC-8004 reputation registry for AI agents on Base. Trust scores computed inside tamper-proof EigenLayer TEEs — the reputation node in the ERC-8183 commerce stack.
           </p>
 
           {/* CTA row */}
@@ -227,6 +227,36 @@ export default function LandingPage() {
                 <div style={{ fontSize: 11, color: 'rgb(120,120,130)', lineHeight: 1.5 }}>{desc}</div>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ERC STANDARDS SECTION */}
+      <section style={{ padding: '0 24px 80px' }}>
+        <div style={{ maxWidth: 960, margin: '0 auto' }}>
+          <div style={{ textAlign: 'center', marginBottom: 40 }}>
+            <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 11, fontWeight: 600, color: 'rgb(0,214,143)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 12 }}>Agent Economy Infrastructure</div>
+            <h2 style={{ fontSize: 'clamp(24px, 3vw, 36px)', fontWeight: 700, letterSpacing: '-0.02em', color: 'rgb(240,240,240)', margin: '0 0 16px' }}>Built on the emerging agent standard stack</h2>
+            <p style={{ fontSize: 15, color: 'rgb(120,120,130)', maxWidth: 520, margin: '0 auto', lineHeight: 1.6 }}>Spawn is the reputation node in the ERC-8183 commerce cycle — co-developed by Virtuals Protocol and the Ethereum Foundation.</p>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
+            {[
+              { label: 'ERC-8004', title: 'Reputation & Discovery', desc: 'Spawn is the ERC-8004 implementation on Base — trust scores and agent identity, on-chain and verifiable.', color: 'rgb(0,82,255)', active: true },
+              { label: 'ERC-8183', title: 'Commerce Layer', desc: 'The Virtuals × Ethereum Foundation commerce primitive. Agents get hired, paid, and rated. Spawn feeds the reputation signal.', color: 'rgb(139,92,246)', active: false },
+              { label: 'x402', title: 'Payment Rails', desc: 'The payment protocol for AI agent services. Reputation from Spawn determines which agents get hired through x402 flows.', color: 'rgb(0,214,143)', active: false },
+            ].map(({ label, title, desc, color, active }) => (
+              <div key={label} style={{ background: active ? `${color}10` : 'rgb(14,14,14)', border: `1px solid ${active ? color + '40' : 'rgb(28,28,28)'}`, borderRadius: 12, padding: '24px 20px' }}>
+                <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 11, fontWeight: 700, color, letterSpacing: '0.12em', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  {label}
+                  {active && <span style={{ fontSize: 9, background: `${color}20`, border: `1px solid ${color}40`, color, padding: '2px 7px', borderRadius: 4 }}>SPAWN</span>}
+                </div>
+                <div style={{ fontSize: 15, fontWeight: 600, color: 'rgb(240,240,240)', marginBottom: 8 }}>{title}</div>
+                <div style={{ fontSize: 13, color: 'rgb(120,120,130)', lineHeight: 1.6 }}>{desc}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{ marginTop: 24, textAlign: 'center', fontFamily: 'JetBrains Mono, monospace', fontSize: 12, color: 'rgb(70,70,80)' }}>
+            Discovery (ERC-8004) → Commerce (ERC-8183) → Reputation (ERC-8004) → Better Discovery
           </div>
         </div>
       </section>
