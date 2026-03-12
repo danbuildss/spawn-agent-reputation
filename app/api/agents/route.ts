@@ -16,10 +16,11 @@ export async function GET() {
   }
 
   try {
-    // Fetch all agents from Supabase — featured agents first, then by score
+    // Fetch only approved agents — featured first, then by score
     const { data: agents, error } = await supabase
       .from('agents')
       .select('*')
+      .in('status', ['active', 'verified'])
       .order('featured', { ascending: false })
       .order('score', { ascending: false })
 
