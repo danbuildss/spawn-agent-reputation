@@ -103,6 +103,14 @@ export default function AdminPage() {
           </div>
           <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
             {actionMsg && <span style={{ fontSize: 13, color: 'rgb(0,214,143)' }}>{actionMsg}</span>}
+            {activeTab === 'indexed' && pendingAgents.length > 0 && (
+              <button onClick={async () => {
+                if (!confirm(`Approve all ${pendingAgents.length} pending agents?`)) return
+                for (const a of pendingAgents) await approveAgent(a.contract_address, 'approve')
+              }} style={{ background: 'rgba(0,214,143,0.12)', border: '1px solid rgba(0,214,143,0.3)', color: 'rgb(0,214,143)', borderRadius: 8, padding: '8px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+                Approve All ({pendingAgents.length})
+              </button>
+            )}
             <button onClick={loadAll} style={{ background: 'rgb(14,14,14)', border: '1px solid rgb(28,28,28)', color: 'rgb(120,120,130)', borderRadius: 8, padding: '8px 16px', fontSize: 13, cursor: 'pointer' }}>Refresh</button>
             <Link href="/" style={{ background: 'rgb(28,28,28)', color: 'rgb(120,120,130)', borderRadius: 8, padding: '8px 16px', fontSize: 13, textDecoration: 'none' }}>Exit</Link>
           </div>
